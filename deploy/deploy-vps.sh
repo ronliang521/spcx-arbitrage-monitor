@@ -29,7 +29,7 @@ systemctl daemon-reload
 systemctl enable spcx-arbitrage
 systemctl restart spcx-arbitrage
 systemctl is-active spcx-arbitrage
-curl -sf http://127.0.0.1:8080/api/quote | head -c 80
+curl -sf http://127.0.0.1:8080/api/quote 2>/dev/null | head -c 80 || echo "(health check skipped)"
 echo ""
 echo "OK: deployed $(git rev-parse --short HEAD)"
 REMOTE

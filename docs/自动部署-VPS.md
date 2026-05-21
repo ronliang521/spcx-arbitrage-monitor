@@ -22,9 +22,13 @@ chmod +x deploy/deploy-vps.sh deploy/install-git-hook.sh
 
 ## 方式 B：GitHub Actions（任意电脑 push 都部署）
 
+仓库内已有 `.github/workflows/deploy-vps.yml`（若尚未进 GitHub，需用带 **workflow** 权限的账号 push 该文件）。
+
 1. GitHub 仓库 → **Settings → Secrets → Actions**
 2. 新建 **`VPS_SSH_PRIVATE_KEY`**：填入 Mac 上 `~/.ssh/id_ed25519` 的**私钥**全文（与 DMIT 面板 mac-new 对应）
-3. 以后向 **`main`** 分支 `git push`，工作流 `.github/workflows/deploy-vps.yml` 会自动 SSH 部署
+3. 向 **`main`** 分支 `git push` 后，Actions 会自动 SSH 部署
+
+若 push 报错 `without workflow scope`：在 GitHub 重新授权 Cursor/gh CLI 的 **workflow** 权限，或在本机用 SSH remote push。
 
 ## 日常流程
 
