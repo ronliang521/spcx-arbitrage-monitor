@@ -66,6 +66,26 @@
     return `|价差| ≥ ${t.toFixed(2)}% 时提醒`;
   }
 
+  /** Bark 通知标题：按命中数据生成，不读绑定备注名 */
+  function spreadPushTitle(hits) {
+    if (!hits?.length) return config?.title || "SPCX 价差提醒";
+    if (hits.length === 1) {
+      const h = hits[0];
+      const from = h.from || h.row || "";
+      const to = h.to || h.col || "";
+      return `${from} → ${to} 有价差`;
+    }
+    return `${hits.length} 组交易对有价差`;
+  }
+
+  function spreadPushBody(hits) {
+    const top = hits.slice(0, 5);
+    const lines = top.map((h) => h.label).filter(Boolean);
+    const more = hits.length > 5 ? `\n…共 ${hits.length} 组` : "";
+    const t = Number(config?.thresholdPct ?? 1);
+    return `${lines.join("\n")}${more}\n|价差| ≥ ${t.toFixed(2)}%`;
+  }
+
   function watchPairsLabel(cfg) {
     const n = (cfg?.watchPairs || []).length;
     const total = matrixPairs.length || 42;
@@ -111,7 +131,8 @@
       .map((b) => {
         const off = !b.enabled;
         const mask = b.urlMask || "—";
-        return `<span class="binding-chip${off ? " off" : ""}" title="${escapeHtml(mask)}">${escapeHtml(b.name || "同事")}<span class="mono binding-mask">${escapeHtml(mask)}</span></span>`;
+        const label = b.urlMask || b.name || "Bark";
+        return `<span class="binding-chip${off ? " off" : ""}" title="${escapeHtml(label)}"><span class="mono binding-mask">${escapeHtml(label)}</span></span>`;
       })
       .join("");
   }
@@ -287,7 +308,7 @@
         const url = String(b.url || "").trim();
         return {
           id: b.id || `binding-${i}`,
-          name: b.name || `同事${i + 1}`,
+          name: b.name || b.urlMask || "",
           enabled: b.enabled !== false,
           hasUrl: !!url,
           urlMask: url.length > 4 ? `••••${url.slice(-4)}` : url ? "••••" : "",
@@ -338,10 +359,6 @@
       .map(
         (b) => `
       <div class="binding-row" data-id="${escapeHtml(b.id)}">
-        <label class="field">
-          <span>备注名</span>
-          <input type="text" data-f="name" value="${escapeHtml(b.name)}" placeholder="如 Ron" />
-        </label>
         <label class="field field-wide">
           <span>Bark 链接</span>
           <input type="text" data-f="url" value="${escapeHtml(b.url)}" placeholder="${escapeHtml(b.urlPlaceholder || "https://api.day.app/你的Key/")}" autocomplete="off" />
@@ -364,7 +381,6 @@
       const id = row.dataset.id;
       const item = bindingsDraft.find((x) => x.id === id);
       if (!item) continue;
-      item.name = row.querySelector('[data-f="name"]')?.value?.trim() || item.name;
       item.url = row.querySelector('[data-f="url"]')?.value?.trim() || "";
       item.enabled = !!row.querySelector('[data-f="enabled"]')?.checked;
     }
@@ -374,13 +390,12 @@
     if (!config) config = defaultConfig();
     bindingsDraft = (config.bindings || []).map((b, i) => ({
       id: b.id || `binding-${i}`,
-      name: b.name || "",
       url: b._url || "",
       urlPlaceholder: b.urlMask ? `已保存 ${b.urlMask}，留空不修改` : "https://api.day.app/你的Key/",
       enabled: b.enabled !== false,
     }));
     if (!bindingsDraft.length) {
-      bindingsDraft = [{ id: `b-${Date.now()}`, name: "", url: "", enabled: true }];
+      bindingsDraft = [{ id: `b-${Date.now()}`, url: "", enabled: true }];
     }
     renderBindingsForm();
     openModal("#bark-bindings-modal", true);
@@ -391,7 +406,6 @@
     await saveConfig({
       bindings: bindingsDraft.map((b) => ({
         id: b.id,
-        name: b.name,
         url: b.url,
         enabled: b.enabled,
       })),
@@ -421,13 +435,14 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         url: b.url,
-        title: config?.title || "SPCX 价差提醒",
-        body: `测试推送 · ${b.name || "同事"}`,
+        title: "测试",
+        body: "SPCX Bark 连接正常，可接收价差提醒。",
       }),
     });
     const data = await r.json();
     if (!data.ok) throw new Error(data.errors?.join("; ") || data.error || "推送失败");
-    lastStatus = `测试已发送至 ${b.name}`;
+    const mask = b.url?.slice(-8) || "Bark";
+    lastStatus = `测试已发送（标题：测试 · ${mask}）`;
     renderSummary();
   }
 
@@ -481,15 +496,13 @@
         return;
       }
 
-      const top = toSend.slice(0, 5);
-      const lines = top.map((h) => h.label).join("\n");
-      const more = toSend.length > 5 ? `\n…共 ${toSend.length} 组` : "";
-      const body = `${lines}${more}\n${thresholdLabel(config)}`;
+      const title = spreadPushTitle(toSend);
+      const body = spreadPushBody(toSend);
 
       const pr = await fetch("/api/bark/push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: config.title, body }),
+        body: JSON.stringify({ title, body }),
       });
       const push = await pr.json();
       if (push.ok && push.sent > 0) {
@@ -584,7 +597,7 @@
     });
 
     $("#btn-add-binding")?.addEventListener("click", () => {
-      bindingsDraft.push({ id: `b-${Date.now()}`, name: "", url: "", enabled: true });
+      bindingsDraft.push({ id: `b-${Date.now()}`, url: "", enabled: true });
       renderBindingsForm();
     });
 
@@ -594,7 +607,7 @@
         const row = e.target.closest(".binding-row");
         bindingsDraft = bindingsDraft.filter((x) => x.id !== row?.dataset.id);
         if (!bindingsDraft.length) {
-          bindingsDraft = [{ id: `b-${Date.now()}`, name: "", url: "", enabled: true }];
+          bindingsDraft = [{ id: `b-${Date.now()}`, url: "", enabled: true }];
         }
         renderBindingsForm();
         return;

@@ -22,6 +22,7 @@ from matrix_config import (
 )
 from bark_alerts import (
     evaluate_spread_hits,
+    format_test_notification,
     load_bark_config,
     merge_config_update,
     normalize_bark_url,
@@ -561,8 +562,9 @@ def api_bark_test(payload: Dict[str, Any] = Body(...)) -> JSONResponse:
     )
     if not url:
         return JSONResponse({"ok": False, "error": "missing_url"}, status_code=400)
-    title = str(payload.get("title") or cfg.title).strip() or cfg.title
-    body = str(payload.get("body") or "SPCX Bark 测试推送").strip()
+    default_title, default_body = format_test_notification()
+    title = str(payload.get("title") or default_title).strip() or default_title
+    body = str(payload.get("body") or default_body).strip() or default_body
     result = push_to_bindings(cfg, title=title, body=body, urls=[url])
     return JSONResponse(result)
 

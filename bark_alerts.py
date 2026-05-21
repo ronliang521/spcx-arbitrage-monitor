@@ -56,10 +56,17 @@ class BarkBinding:
     url: str
     enabled: bool = True
 
+    def display_label(self) -> str:
+        """列表展示用标签，不依赖用户自定义备注。"""
+        mask = mask_bark_url(self.url)
+        if mask:
+            return mask
+        return (self.name or "").strip() or "Bark"
+
     def to_public(self) -> Dict[str, Any]:
         return {
             "id": self.id,
-            "name": self.name,
+            "name": self.display_label(),
             "urlMask": mask_bark_url(self.url),
             "enabled": self.enabled,
             "hasUrl": bool(normalize_bark_url(self.url)),
@@ -118,7 +125,7 @@ def _parse_bindings(raw: Any) -> List[BarkBinding]:
         bid = str(item.get("id") or item.get("bindingId") or f"binding-{i}").strip()
         if not bid:
             bid = f"binding-{i}"
-        name = str(item.get("name") or "").strip() or f"同事{i + 1}"
+        name = str(item.get("name") or "").strip()
         url_raw = item.get("url") or item.get("key") or item.get("barkUrl") or ""
         url = normalize_bark_url(url_raw)
         enabled = bool(item.get("enabled", True))
@@ -258,7 +265,7 @@ def merge_config_update(
                 continue
             bid = str(item.get("id") or f"binding-{i}").strip()
             old = next((b for b in current.bindings if b.id == bid), None)
-            name = str(item.get("name") or (old.name if old else "")).strip() or f"同事{i + 1}"
+            name = str(item.get("name") or (old.name if old else "")).strip()
             url_in = item.get("url") or item.get("barkUrl") or item.get("key")
             if url_in is not None and str(url_in).strip():
                 url = normalize_bark_url(url_in)
@@ -322,6 +329,28 @@ def evaluate_spread_hits(
             )
     hits.sort(key=lambda x: abs(x["pct"]), reverse=True)
     return hits
+
+
+def format_test_notification() -> tuple[str, str]:
+    """测试推送：标题固定为「测试」。"""
+    return "测试", "SPCX Bark 连接正常，可接收价差提醒。"
+
+
+def format_spread_notification(hits: List[Dict[str, Any]], *, threshold_pct: float) -> tuple[str, str]:
+    """价差推送：标题按命中组数/方向生成，正文为明细。"""
+    if not hits:
+        return DEFAULT_TITLE, ""
+    if len(hits) == 1:
+        h = hits[0]
+        title = f"{h.get('from', '')} → {h.get('to', '')} 有价差".strip(" →")
+    else:
+        title = f"{len(hits)} 组交易对有价差"
+    lines = [str(h.get("label") or "").strip() for h in hits[:5] if h.get("label")]
+    body_parts = [x for x in lines if x]
+    if len(hits) > 5:
+        body_parts.append(f"…共 {len(hits)} 组")
+    body_parts.append(f"|价差| ≥ {threshold_pct:.2f}%")
+    return title, "\n".join(body_parts)
 
 
 def bark_push_url(
