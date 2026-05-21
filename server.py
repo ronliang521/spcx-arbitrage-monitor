@@ -50,8 +50,10 @@ BARK_COOLDOWN_PATH = DATA_DIR / "bark_cooldown.json"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
 BARK_POLL_SEC = 30
+# 略高于 spread_history.HIST_APPEND_MIN_MS(4.5s)，保证 VPS 无人打开监控页也持续落盘
+HISTORY_POLL_SEC = 5
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 6
+CONFIG_REVISION = 7
 
 _log = logging.getLogger("spcx.bark")
 _bark_lock = threading.Lock()
@@ -484,6 +486,16 @@ def _snapshot_for_bark() -> Dict[str, Any]:
     return payload
 
 
+def _history_tick() -> None:
+    """后台价差历史落盘（不依赖 /api/quote 或监控页）。"""
+    with _bark_lock:
+        try:
+            payload = _snapshot_for_bark()
+            record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
+        except Exception:
+            _log.exception("history tick failed")
+
+
 def _bark_tick() -> None:
     """后台 Bark：不依赖浏览器打开监控页。"""
     with _bark_lock:
@@ -521,15 +533,24 @@ async def _bark_monitor_loop() -> None:
         await asyncio.sleep(interval)
 
 
+async def _history_monitor_loop() -> None:
+    while True:
+        await asyncio.to_thread(_history_tick)
+        await asyncio.sleep(HISTORY_POLL_SEC)
+
+
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
-    task = asyncio.create_task(_bark_monitor_loop())
+    bark_task = asyncio.create_task(_bark_monitor_loop())
+    history_task = asyncio.create_task(_history_monitor_loop())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    bark_task.cancel()
+    history_task.cancel()
+    for task in (bark_task, history_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="SPCX Arbitrage Monitor", lifespan=_lifespan)
