@@ -490,8 +490,14 @@ def _history_tick() -> None:
     """后台价差历史落盘（不依赖 /api/quote 或监控页）。"""
     with _bark_lock:
         try:
-            payload = _snapshot_for_bark()
-            record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
+            # 必须拉新快照：_snapshot_for_bark 会复用 60s 缓存，ts 不变会导致落盘一直被节流跳过
+            t = _now_ms()
+            payload = build_snapshot()
+            _quote_cache["at_ms"] = t
+            _quote_cache["payload"] = payload
+            n = record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
+            if n:
+                _log.debug("history recorded %s ticks", n)
         except Exception:
             _log.exception("history tick failed")
 
