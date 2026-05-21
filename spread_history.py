@@ -4,40 +4,18 @@ from __future__ import annotations
 import json
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from matrix_config import (
+    EXPECTED_SPREAD_PAIRS,
+    MATRIX_COL_LABELS,
+    MATRIX_COLS,
+    ROW_VENUE_IDS,
+    ROW_VENUE_LABELS,
+)
 
 HISTORY_MAX_TICKS = 300_000
 HIST_APPEND_MIN_MS = 4_500
-
-# 与 server.py 价差矩阵一致：7 行交易所 × 7 列表头，去掉斜对角 = 42 组
-ROW_VENUES: List[Tuple[str, str]] = [
-    ("binance", "Binance"),
-    ("okx", "OKX"),
-    ("bitget", "Bitget"),
-    ("gate", "Gate"),
-    ("mexc", "MEXC"),
-    ("aster", "Aster"),
-    ("tradexyz", "trade.xyz"),
-]
-MATRIX_COL_IDS: List[str] = [
-    "gate",
-    "bitget",
-    "mexc",
-    "binance",
-    "okx",
-    "tradexyz",
-    "aster",
-]
-COL_LABELS: Dict[str, str] = {
-    "gate": "Gate",
-    "bitget": "Bitget",
-    "mexc": "MEXC",
-    "binance": "币安",
-    "okx": "OKX",
-    "tradexyz": "trade.xyz",
-    "aster": "Aster",
-}
-EXPECTED_PAIR_COUNT = len(ROW_VENUES) * len(MATRIX_COL_IDS) - len(ROW_VENUES)
 
 _lock = threading.Lock()
 _ticks: List[Dict[str, Any]] = []
@@ -124,8 +102,9 @@ def record_from_snapshot(
 def all_spread_pairs() -> List[Dict[str, str]]:
     """固定 42 组方向（与监控页价差矩阵一一对应）。"""
     out: List[Dict[str, str]] = []
-    for row_id, row_ex in ROW_VENUES:
-        for col_id in MATRIX_COL_IDS:
+    for row_id in ROW_VENUE_IDS:
+        row_ex = ROW_VENUE_LABELS.get(row_id, row_id)
+        for col_id in MATRIX_COLS:
             if row_id == col_id:
                 continue
             out.append(
@@ -133,7 +112,7 @@ def all_spread_pairs() -> List[Dict[str, str]]:
                     "key": _pair_key(row_id, col_id),
                     "row": row_id,
                     "col": col_id,
-                    "label": f"{row_ex} → {COL_LABELS.get(col_id, col_id)}",
+                    "label": f"{row_ex} → {MATRIX_COL_LABELS.get(col_id, col_id)}",
                 }
             )
     return out
@@ -165,20 +144,30 @@ def ticks_to_candles(ticks: List[Dict[str, Any]], tf: str) -> List[Dict[str, Any
         pct = t.get("pct")
         if pct is None:
             continue
+        try:
+            val = float(pct)
+        except (TypeError, ValueError):
+            continue
+        if val != val:  # NaN
+            continue
         b = (ts // tf_ms) * tf_ms
-        buckets.setdefault(b, []).append(float(pct))
+        buckets.setdefault(b, []).append(val)
     candles: List[Dict[str, Any]] = []
     for b in sorted(buckets.keys()):
         vals = buckets[b]
         if not vals:
             continue
+        o = vals[0]
+        c = vals[-1]
+        h = max(vals)
+        l = min(vals)
         candles.append(
             {
-                "t": b // 1000,
-                "o": vals[0],
-                "h": max(vals),
-                "l": min(vals),
-                "c": vals[-1],
+                "t": int(b // 1000),
+                "o": o,
+                "h": h,
+                "l": l,
+                "c": c,
             }
         )
     return candles
@@ -200,6 +189,7 @@ def get_candles(row_id: str, col_id: str, tf: str) -> Dict[str, Any]:
         "col": col_id,
         "tf": tf,
         "label": label,
+        "formula": "(列 ÷ 行 − 1) × 100%",
         "tickCount": len(ticks),
         "candles": candles,
     }
@@ -213,8 +203,9 @@ def history_meta() -> Dict[str, Any]:
     return {
         "ok": True,
         "tickCount": n,
-        "pairCount": EXPECTED_PAIR_COUNT,
+        "pairCount": EXPECTED_SPREAD_PAIRS,
         "pairsWithData": _pairs_with_data(),
         "firstTs": first,
         "lastTs": last,
+        "formula": "(列 ÷ 行 − 1) × 100%",
     }

@@ -11,7 +11,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   </head>
   <body>
     <div class="wrap">
@@ -28,7 +27,8 @@
             <p class="eyebrow">价差矩阵 · 落盘 K 线</p>
             <h1>价差历史数据</h1>
             <p class="subtitle">
-              价差矩阵 <span id="charts-count" class="mono">42 组</span> 方向，每组独立一张 K 线图
+              价差矩阵 <span id="charts-count" class="mono">42 组</span> 方向，每组独立一张 K 线图 ·
+              价差 % = (列 ÷ 行 − 1) × 100%（与监控页一致）
             </p>
           </div>
           <div class="header-actions">
@@ -67,6 +67,10 @@
         <p>数据文件：<code>data/spread_ticks.ndjson</code> · 请保持 <code>./start.sh</code> 持续运行以积累历史</p>
       </footer>
     </div>
-    <script src="/history.js"></script>
+    <script
+      src="/vendor/lightweight-charts.standalone.production.js"
+      onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js'"
+    ></script>
+    <script src="/history.js?v=4"></script>
   </body>
 </html>

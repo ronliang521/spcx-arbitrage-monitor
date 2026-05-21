@@ -14,6 +14,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from matrix_config import EXPECTED_SPREAD_PAIRS, MATRIX_COLS, MATRIX_COL_LABELS
 from spread_history import (
     get_candles,
     history_meta,
@@ -28,18 +29,7 @@ DATA_DIR = ROOT / "data"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 3
-
-MATRIX_COLS = ["gate", "bitget", "mexc", "binance", "okx", "tradexyz", "aster"]
-MATRIX_COL_LABELS = {
-    "gate": "Gate",
-    "bitget": "Bitget",
-    "mexc": "MEXC",
-    "binance": "币安",
-    "okx": "OKX",
-    "tradexyz": "trade.xyz",
-    "aster": "Aster",
-}
+CONFIG_REVISION = 4
 
 VENUES: List[Dict[str, Any]] = [
     {
@@ -438,8 +428,8 @@ def build_snapshot() -> Dict[str, Any]:
         "markets": results,
         "highlights": highlights[:6],
         "spread": {
-            "note": "行、列均为隐含估值；价差%=(行÷列−1)×100%",
-            "formula": "(行 ÷ 列 − 1) × 100%",
+            "note": "行、列均为隐含估值；价差%=(列÷行−1)×100%",
+            "formula": "(列 ÷ 行 − 1) × 100%",
             "columns": cols,
             "rows": matrix_rows,
         },
@@ -454,6 +444,7 @@ init_history(DATA_DIR)
 def api_quote() -> JSONResponse:
     t = _now_ms()
     if _quote_cache["payload"] and t - _quote_cache["at_ms"] < QUOTE_CACHE_TTL_MS:
+        record_from_snapshot(_quote_cache["payload"], MATRIX_COL_LABELS, data_dir=DATA_DIR)
         return JSONResponse(_quote_cache["payload"])
     payload = build_snapshot()
     record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
@@ -469,11 +460,9 @@ def api_spread_history_meta() -> JSONResponse:
 
 @app.get("/api/spread-history/pairs")
 def api_spread_history_pairs() -> JSONResponse:
-    from spread_history import EXPECTED_PAIR_COUNT
-
     pairs = list_pairs()
     return JSONResponse(
-        {"ok": True, "pairs": pairs, "total": len(pairs), "expected": EXPECTED_PAIR_COUNT}
+        {"ok": True, "pairs": pairs, "total": len(pairs), "expected": EXPECTED_SPREAD_PAIRS}
     )
 
 

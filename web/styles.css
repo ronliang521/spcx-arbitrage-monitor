@@ -549,6 +549,16 @@ a:hover {
   min-width: 1.5rem;
 }
 
+.pair-block-err {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--down, #fb7185);
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pair-block-title {
   flex: 1;
   font-weight: 600;

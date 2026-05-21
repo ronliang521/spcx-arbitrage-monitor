@@ -55,6 +55,39 @@ function pairFromBlock(block) {
   );
 }
 
+/** 去重、升序、过滤非法 OHLC，供 Lightweight Charts 使用（time 为 UTC 秒）。 */
+function sanitizeCandles(raw) {
+  const map = new Map();
+  for (const c of raw || []) {
+    const time = Number(c.t ?? c.time);
+    if (!Number.isFinite(time) || time <= 0) continue;
+    const open = Number(c.o ?? c.open);
+    const high = Number(c.h ?? c.high);
+    const low = Number(c.l ?? c.low);
+    const close = Number(c.c ?? c.close);
+    if (![open, high, low, close].every(Number.isFinite)) continue;
+    map.set(time, { time, open, high, low, close });
+  }
+  return [...map.values()].sort((a, b) => a.time - b.time);
+}
+
+function setBlockChartError(block, message) {
+  const summary = block.querySelector(".pair-block-summary");
+  if (!summary) return;
+  let err = block.querySelector("[data-chart-err]");
+  if (!message) {
+    err?.remove();
+    return;
+  }
+  if (!err) {
+    err = document.createElement("span");
+    err.className = "pair-block-err mono";
+    err.dataset.chartErr = "1";
+    summary.appendChild(err);
+  }
+  err.textContent = message;
+}
+
 function applySearchFilter() {
   const q = searchQuery.trim().toLowerCase();
   let visible = 0;
@@ -101,6 +134,7 @@ function createChart(el) {
 function initChartForBlock(block) {
   const key = block.dataset.pair;
   if (!key || chartMap.has(key)) return chartMap.get(key);
+  if (!window.LightweightCharts) return null;
   const box = block.querySelector("[data-chart]");
   if (!box) return null;
   const empty = block.querySelector("[data-empty]");
@@ -183,7 +217,9 @@ async function loadPairCandles(pair, tf) {
   const url = `/api/spread-history/candles?row=${encodeURIComponent(pair.row)}&col=${encodeURIComponent(pair.col)}&tf=${encodeURIComponent(tf)}`;
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const data = await r.json();
+  if (data.ok === false) throw new Error(data.error || "candles failed");
+  return data;
 }
 
 async function refreshBlockData(block, pair) {
@@ -191,17 +227,25 @@ async function refreshBlockData(block, pair) {
   const tf = getBlockTf(block);
   try {
     const data = await loadPairCandles(pair, tf);
-    const candles = (data.candles || []).map((c) => ({
-      time: c.t,
-      open: c.o,
-      high: c.h,
-      low: c.l,
-      close: c.c,
-    }));
+    const candles = sanitizeCandles(data.candles);
+    setBlockChartError(block, "");
+
     const emptyEl = block.querySelector("[data-empty]");
-    if (emptyEl) emptyEl.hidden = candles.length > 0;
+    if (emptyEl) {
+      emptyEl.hidden = candles.length > 0;
+      if (!candles.length) {
+        emptyEl.textContent =
+          data.tickCount > 0
+            ? "该周期暂无 K 线，可切换更短周期"
+            : "暂无 K 线，请保持监控页运行以积累价差";
+      }
+    }
 
     if (block.open) {
+      if (!window.LightweightCharts) {
+        setBlockChartError(block, "K线库未加载");
+        return;
+      }
       const inst = chartMap.get(key) || initChartForBlock(block);
       if (inst?.series) {
         if (candles.length) {
@@ -210,21 +254,31 @@ async function refreshBlockData(block, pair) {
         } else {
           inst.series.setData([]);
         }
+      } else if (!inst) {
+        setBlockChartError(block, "图表初始化失败");
       }
     }
     block.dataset.lastClose = candles.length ? String(candles[candles.length - 1].close) : "";
-  } catch {
-    /* 标题栏不再展示状态文案 */
+  } catch (e) {
+    setBlockChartError(block, e.message || "加载失败");
   }
 }
 
 async function renderAll() {
   const banner = $("#err-banner");
+  if (!window.LightweightCharts) {
+    banner.hidden = false;
+    banner.textContent =
+      "K 线绘图库未加载。请强制刷新（Cmd+Shift+R）；若仍失败，检查网络或代理是否拦截 /vendor/ 静态资源。";
+  }
   try {
     const [metaR, pairsR] = await Promise.all([
       fetch("/api/spread-history/meta", { cache: "no-store" }),
       fetch("/api/spread-history/pairs", { cache: "no-store" }),
     ]);
+    if (!metaR.ok || !pairsR.ok) {
+      throw new Error(`HTTP ${metaR.status}/${pairsR.status}`);
+    }
     const meta = await metaR.json();
     const pairsData = await pairsR.json();
     const pairs = pairsData.pairs || [];
@@ -238,24 +292,27 @@ async function renderAll() {
       const a = new Date(meta.firstTs).toLocaleString("zh-CN", { hour12: false });
       const b = new Date(meta.lastTs).toLocaleString("zh-CN", { hour12: false });
       const withData = meta.pairsWithData ?? "—";
-      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}`;
+      const formula = meta.formula ? ` · ${meta.formula}` : "";
+      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}${formula}`;
     } else {
       $("#hist-meta").textContent = `0 点 · 请打开监控页并保持 server 运行以写入 42 组价差`;
     }
 
-    await Promise.all(
-      pairs.map(async (pair) => {
-        const block = document.querySelector(`[data-pair="${pair.key}"]`);
-        if (!block) return;
-        if (block.open || block.dataset.chartReady === "1") {
-          if (block.open && !chartMap.has(pair.key)) initChartForBlock(block);
-          await refreshBlockData(block, pair);
-        }
-      })
-    );
+    if (window.LightweightCharts) {
+      await Promise.all(
+        pairs.map(async (pair) => {
+          const block = document.querySelector(`[data-pair="${pair.key}"]`);
+          if (!block) return;
+          if (block.open || block.dataset.chartReady === "1") {
+            if (block.open && !chartMap.has(pair.key)) initChartForBlock(block);
+            await refreshBlockData(block, pair);
+          }
+        })
+      );
+      if (pairs.length) banner.hidden = true;
+    }
 
     applySearchFilter();
-    banner.hidden = true;
   } catch (e) {
     banner.hidden = false;
     banner.textContent = `加载失败：${e.message}`;
@@ -282,6 +339,13 @@ function setAllBlocksOpen(open) {
   }
 }
 
+function boot() {
+  initTheme();
+  renderAll();
+  setInterval(renderAll, REFRESH_MS);
+  window.addEventListener("resize", onResize);
+}
+
 $("#pair-search")?.addEventListener("input", (e) => {
   searchQuery = e.target.value || "";
   applySearchFilter();
@@ -298,7 +362,8 @@ $("#btn-theme")?.addEventListener("click", () => {
   });
 });
 
-initTheme();
-renderAll();
-setInterval(renderAll, REFRESH_MS);
-window.addEventListener("resize", onResize);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot);
+} else {
+  boot();
+}
