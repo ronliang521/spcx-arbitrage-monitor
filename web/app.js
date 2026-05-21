@@ -181,10 +181,6 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
-/** 买方列插在 binance 前；卖方行仅覆盖 binance / okx / trade.xyz */
-const MATRIX_BUYER_BEFORE = "binance";
-const MATRIX_SELLER_COLS = ["binance", "okx", "tradexyz"];
-
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
@@ -194,24 +190,23 @@ function renderSpreadMatrix(spread) {
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
   const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
+  const sellerColCount = colKeys.length;
+  const totalColCount = sellerColCount + 2;
 
-  const splitAt = colKeys.indexOf(MATRIX_BUYER_BEFORE);
-  const colsLeft = colKeys.slice(0, splitAt);
-  const colsRight = colKeys.slice(splitAt);
-  const sellerSpan = MATRIX_SELLER_COLS.length;
-  const totalColCount = colKeys.length + 1;
-
-  const row2Left = colsLeft.map((k) => `<th>${labelByKey[k]}</th>`).join("");
-  const row2Right = colsRight.map((k) => `<th>${labelByKey[k]}</th>`).join("");
+  const sellerHeaderCells = colKeys
+    .map((key) => `<th>${labelByKey[key]}</th>`)
+    .join("");
 
   head.innerHTML = `
     <tr>
-      <th colspan="${colsLeft.length}" class="matrix-pad"></th>
-      <th rowspan="2" class="matrix-axis-buyer">买方</th>
-      <th colspan="${sellerSpan}" class="matrix-axis-seller">卖方</th>
-      <th colspan="${colsRight.length - sellerSpan}" class="matrix-pad"></th>
+      <th colspan="2" class="matrix-head-spacer"></th>
+      <th colspan="${sellerColCount}" class="matrix-axis-seller">卖方</th>
     </tr>
-    <tr>${row2Left}${row2Right}</tr>`;
+    <tr>
+      <th class="matrix-axis-buyer">买方</th>
+      <th class="matrix-row-axis"></th>
+      ${sellerHeaderCells}
+    </tr>`;
 
   const rows = spread.rows || [];
 
@@ -227,22 +222,15 @@ function renderSpreadMatrix(spread) {
     return `<td class="${cls}">${cell.label ?? "—"}</td>`;
   }
 
-  function buyerCell(row) {
-    return `<td class="matrix-buyer-name"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
-  }
-
   body.innerHTML = rows
-    .map((row) => {
-      const leftCells = colsLeft.map((colId) => dataCell(row, colId)).join("");
-      const rightCells = colsRight
-        .map((colId) => {
-          if (colId === MATRIX_BUYER_BEFORE) {
-            return buyerCell(row) + dataCell(row, colId);
-          }
-          return dataCell(row, colId);
-        })
-        .join("");
-      return `<tr>${leftCells}${rightCells}</tr>`;
+    .map((row, idx) => {
+      const rowLabel = `<td class="matrix-row-label"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
+      const dataCells = colKeys.map((colId) => dataCell(row, colId)).join("");
+      const buyerAxis =
+        idx === 0
+          ? `<td rowspan="${rows.length}" class="matrix-axis-buyer-body">买方</td>`
+          : "";
+      return `<tr>${buyerAxis}${rowLabel}${dataCells}</tr>`;
     })
     .join("");
 }
