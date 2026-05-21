@@ -86,21 +86,23 @@
         <p class="spread-calc" id="spread-calc">
           <strong>计算方式：</strong>行、列数值均为隐含估值（最新价 × 该所股本口径）。价差 % = (行 ÷ 列 − 1) × 100%
         </p>
-        <div class="table-scroll matrix-scroll">
-          <div class="matrix-seller-band" id="matrix-seller-band" hidden>
-            <span>卖方</span>
+        <div class="matrix-frame">
+          <div class="matrix-axis matrix-axis-buyer">买方</div>
+          <div class="matrix-panel">
+            <div class="matrix-axis matrix-axis-seller">卖方</div>
+            <div class="table-scroll">
+              <table class="matrix-table" id="spread-table">
+                <colgroup>
+                  <col class="matrix-col-label" />
+                  <col span="7" class="matrix-col-market" />
+                </colgroup>
+                <thead id="spread-head"></thead>
+                <tbody id="spread-body">
+                  <tr><td colspan="8" class="loading">加载中…</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <table class="matrix-table" id="spread-table">
-            <colgroup id="spread-colgroup">
-              <col class="matrix-col-buyer" />
-              <col class="matrix-col-label" />
-              <col span="7" class="matrix-col-market" />
-            </colgroup>
-            <thead id="spread-head"></thead>
-            <tbody id="spread-body">
-              <tr><td colspan="9" class="loading">加载中…</td></tr>
-            </tbody>
-          </table>
         </div>
       </section>
 
@@ -108,6 +110,6 @@
         <p>本地网页 · <code>./start.sh</code> 或 <code>python3 server.py</code> · 端口 8080</p>
       </footer>
     </div>
-    <script src="/app.js?v=matrix-axis-8"></script>
+    <script src="/app.js?v=matrix-axis-9"></script>
   </body>
 </html>

@@ -211,36 +211,46 @@ body {
   table-layout: fixed;
 }
 
-.matrix-scroll {
-  position: relative;
-  padding-top: 2.35rem;
+.matrix-frame {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
 }
 
-.matrix-seller-band {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 2.35rem;
+.matrix-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.matrix-axis {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  border-bottom: 2px solid rgba(94, 234, 212, 0.35);
-  background: rgba(94, 234, 212, 0.14);
-  border-radius: 8px 8px 0 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.matrix-seller-band span {
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.12em;
+  background: rgba(94, 234, 212, 0.12);
+  box-sizing: border-box;
 }
 
-.matrix-col-buyer {
-  width: 3.2rem;
+.matrix-axis-buyer {
+  flex: 0 0 2.75rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  border-right: 2px solid rgba(94, 234, 212, 0.35);
+}
+
+.matrix-axis-seller {
+  flex: 0 0 2.5rem;
+  width: 100%;
+  text-align: center;
+  border-bottom: 2px solid rgba(94, 234, 212, 0.35);
 }
 
 .matrix-col-label {
@@ -338,45 +348,9 @@ body {
   color: var(--muted);
 }
 
-.matrix-table th.matrix-head-spacer {
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-}
-
 .matrix-table th.matrix-row-axis {
   min-width: 6.5rem;
   border-right: 1px solid var(--border);
-}
-
-.matrix-table th.matrix-head-spacer-buyer {
-  min-width: 3.2rem;
-  border-right: 2px solid rgba(147, 197, 253, 0.35);
-  background: transparent;
-}
-
-.matrix-table th.matrix-axis-buyer {
-  text-align: center;
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  background: rgba(147, 197, 253, 0.16);
-  border-right: 2px solid rgba(147, 197, 253, 0.35);
-  vertical-align: middle;
-  min-width: 3.2rem;
-}
-
-.matrix-table td.matrix-axis-buyer-body {
-  text-align: center;
-  vertical-align: middle;
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  background: rgba(147, 197, 253, 0.12);
-  border-right: 2px solid rgba(147, 197, 253, 0.35);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
 }
 
 .matrix-table td.matrix-row-label {

@@ -181,50 +181,16 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
-function alignMatrixSellerBand() {
-  const band = document.getElementById("matrix-seller-band");
-  const table = document.getElementById("spread-table");
-  if (!band || !table) return;
-
-  const headRow = table.querySelector("#spread-head tr");
-  if (!headRow) {
-    band.hidden = true;
-    return;
-  }
-
-  const cells = headRow.querySelectorAll("th");
-  if (cells.length < 3) {
-    band.hidden = true;
-    return;
-  }
-
-  const firstMarket = cells[2];
-  const lastMarket = cells[cells.length - 1];
-  const scroll = table.closest(".matrix-scroll");
-  if (!scroll) return;
-
-  const sr = scroll.getBoundingClientRect();
-  const a = firstMarket.getBoundingClientRect();
-  const b = lastMarket.getBoundingClientRect();
-  const left = a.left - sr.left + scroll.scrollLeft;
-  const width = b.right - a.left;
-
-  band.style.left = `${left}px`;
-  band.style.width = `${Math.max(width, 0)}px`;
-  band.hidden = width < 8;
-}
-
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
-  const band = document.getElementById("matrix-seller-band");
   if (!spread) return;
 
   const cols = spread.columns || [];
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
   const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
-  const totalColCount = colKeys.length + 2;
+  const totalColCount = colKeys.length + 1;
 
   const sellerHeaderCells = colKeys
     .map((key) => `<th>${labelByKey[key]}</th>`)
@@ -232,7 +198,6 @@ function renderSpreadMatrix(spread) {
 
   head.innerHTML = `
     <tr>
-      <th class="matrix-head-spacer-buyer" aria-hidden="true"></th>
       <th class="matrix-row-axis"></th>
       ${sellerHeaderCells}
     </tr>`;
@@ -241,41 +206,23 @@ function renderSpreadMatrix(spread) {
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="${totalColCount}" class="loading">无数据</td></tr>`;
-    if (band) band.hidden = true;
     return;
   }
 
-  function dataCell(row, colId) {
-    const cell = row.cells?.[colId] ?? {};
-    const self = cell.self === true;
-    const cls = self ? "matrix-self" : cellClass(cell.pct);
-    return `<td class="${cls}">${cell.label ?? "—"}</td>`;
-  }
-
   body.innerHTML = rows
-    .map((row, idx) => {
+    .map((row) => {
       const rowLabel = `<td class="matrix-row-label"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
-      const dataCells = colKeys.map((colId) => dataCell(row, colId)).join("");
-      const buyerAxis =
-        idx === 0
-          ? `<td rowspan="${rows.length}" class="matrix-axis-buyer-body">买方</td>`
-          : "";
-      return `<tr>${buyerAxis}${rowLabel}${dataCells}</tr>`;
+      const dataCells = colKeys
+        .map((colId) => {
+          const cell = row.cells?.[colId] ?? {};
+          const self = cell.self === true;
+          const cls = self ? "matrix-self" : cellClass(cell.pct);
+          return `<td class="${cls}">${cell.label ?? "—"}</td>`;
+        })
+        .join("");
+      return `<tr>${rowLabel}${dataCells}</tr>`;
     })
     .join("");
-
-  requestAnimationFrame(() => {
-    alignMatrixSellerBand();
-    requestAnimationFrame(alignMatrixSellerBand);
-  });
-}
-
-if (!window.__matrixSellerBandResize) {
-  window.__matrixSellerBandResize = true;
-  window.addEventListener("resize", () => alignMatrixSellerBand());
-  document.querySelector(".matrix-scroll")?.addEventListener("scroll", () => alignMatrixSellerBand(), {
-    passive: true,
-  });
 }
 
 async function fetchQuote() {
