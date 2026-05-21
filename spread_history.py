@@ -16,6 +16,9 @@ from matrix_config import (
 
 HISTORY_MAX_TICKS = 300_000
 HIST_APPEND_MIN_MS = 4_500
+# 2026-05-21 起矩阵改为 (列÷行−1)；此前落盘为 (行÷列−1)，读取时需换算
+FORMULA_V2_CUTOFF_MS = 1_779_377_901_000
+FORMULA_TEXT = "(列 ÷ 行 − 1) × 100%"
 
 _lock = threading.Lock()
 _ticks: List[Dict[str, Any]] = []
@@ -24,6 +27,19 @@ _last_append_ms = 0
 
 def _pair_key(row_id: str, col_id: str) -> str:
     return f"{row_id}|{col_id}"
+
+
+def _effective_pct(tick: Dict[str, Any]) -> float:
+    """统一为当前矩阵口径 (列÷行−1)×100。"""
+    pct = float(tick["pct"])
+    fv = tick.get("fv")
+    if fv in (2, "2"):
+        return pct
+    ts = int(tick.get("t") or 0)
+    if ts >= FORMULA_V2_CUTOFF_MS:
+        return pct
+    # 旧口径 (行÷列−1)
+    return -pct / (1.0 + pct / 100.0)
 
 
 def init_history(data_dir: Path) -> None:
@@ -84,6 +100,7 @@ def record_from_snapshot(
                         "rowEx": row_ex,
                         "colEx": col_labels.get(col_id, col_id),
                         "pct": float(pct),
+                        "fv": 2,
                     }
                 )
         if not batch:
@@ -145,7 +162,7 @@ def ticks_to_candles(ticks: List[Dict[str, Any]], tf: str) -> List[Dict[str, Any
         if pct is None:
             continue
         try:
-            val = float(pct)
+            val = _effective_pct(t)
         except (TypeError, ValueError):
             continue
         if val != val:  # NaN
@@ -189,7 +206,7 @@ def get_candles(row_id: str, col_id: str, tf: str) -> Dict[str, Any]:
         "col": col_id,
         "tf": tf,
         "label": label,
-        "formula": "(列 ÷ 行 − 1) × 100%",
+        "formula": FORMULA_TEXT,
         "tickCount": len(ticks),
         "candles": candles,
     }
@@ -207,5 +224,6 @@ def history_meta() -> Dict[str, Any]:
         "pairsWithData": _pairs_with_data(),
         "firstTs": first,
         "lastTs": last,
-        "formula": "(列 ÷ 行 − 1) × 100%",
+        "formula": FORMULA_TEXT,
+        "formulaNote": "与监控页价差矩阵一致；列为买方、行为卖方",
     }

@@ -40,23 +40,26 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-/** 板块标题：label 为「行所 → 列所」，前者买方、后者卖方。 */
+/** 矩阵：行为卖方、列为买方；展示为 卖方 → 买方 */
 function pairLegs(pair) {
-  let buyName = "";
-  let sellName = "";
+  let rowName = "";
+  let colName = "";
   if (pair.label && pair.label.includes("→")) {
     const parts = pair.label.split(/\s*→\s*/).map((s) => s.trim());
-    buyName = parts[0] || "";
-    sellName = parts[1] || "";
+    rowName = parts[0] || "";
+    colName = parts[1] || "";
   }
-  if (!buyName) buyName = pair.row || "";
-  if (!sellName) sellName = pair.col || "";
-  return { buyName: normalizeVenueName(buyName), sellName: normalizeVenueName(sellName) };
+  if (!rowName) rowName = pair.row || "";
+  if (!colName) colName = pair.col || "";
+  return {
+    sellName: normalizeVenueName(rowName),
+    buyName: normalizeVenueName(colName),
+  };
 }
 
 function pairTitleHtml(pair) {
   const { buyName, sellName } = pairLegs(pair);
-  return `<span class="pair-leg pair-leg-buy"><span class="pair-leg-name">${escapeHtml(buyName)}</span><span class="pair-leg-role">买方</span></span><span class="pair-arrow" aria-hidden="true">→</span><span class="pair-leg pair-leg-sell"><span class="pair-leg-name">${escapeHtml(sellName)}</span><span class="pair-leg-role">卖方</span></span>`;
+  return `<span class="pair-leg pair-leg-sell"><span class="pair-leg-name">${escapeHtml(sellName)}</span><span class="pair-leg-role">卖方</span></span><span class="pair-arrow" aria-hidden="true">→</span><span class="pair-leg pair-leg-buy"><span class="pair-leg-name">${escapeHtml(buyName)}</span><span class="pair-leg-role">买方</span></span>`;
 }
 
 function pairSearchText(pair) {
@@ -322,7 +325,8 @@ async function renderAll() {
       const a = new Date(meta.firstTs).toLocaleString("zh-CN", { hour12: false });
       const b = new Date(meta.lastTs).toLocaleString("zh-CN", { hour12: false });
       const withData = meta.pairsWithData ?? "—";
-      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}`;
+      const note = meta.formulaNote ? ` · ${meta.formulaNote}` : "";
+      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}${note}`;
     } else {
       $("#hist-meta").textContent = `0 点 · 请打开监控页并保持 server 运行以写入 42 组价差`;
     }
