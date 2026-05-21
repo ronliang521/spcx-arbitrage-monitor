@@ -199,10 +199,11 @@ function renderSpreadMatrix(spread) {
 
   head.innerHTML = `
     <tr>
-      <th class="matrix-head-spacer"></th>
+      <th colspan="2" class="matrix-head-spacer"></th>
       <th colspan="${sellerColCount}" class="matrix-axis-seller">卖方</th>
     </tr>
     <tr>
+      <th class="matrix-head-spacer-buyer" aria-hidden="true"></th>
       <th class="matrix-row-axis"></th>
       ${sellerHeaderCells}
     </tr>`;
