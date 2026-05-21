@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPCX · 价差历史数据</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="err-banner" class="banner err" role="alert" hidden></div>
+
+      <nav class="site-nav" aria-label="页面导航">
+        <a href="/">SPCX 套利监控</a>
+        <a href="/history.html" class="active">价差历史数据</a>
+      </nav>
+
+      <header class="hero">
+        <div class="header-row">
+          <div>
+            <p class="eyebrow">价差矩阵 · 落盘 K 线</p>
+            <h1>价差历史数据</h1>
+            <p class="subtitle">
+              价差矩阵 <span id="charts-count" class="mono">42 组</span> 方向，每组独立一张 K 线图
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn" id="btn-refresh">刷新图表</button>
+            <button type="button" class="btn btn-ghost" id="btn-theme">切换模式</button>
+          </div>
+        </div>
+        <p class="meta-line">
+          样本：<span id="hist-meta" class="mono">—</span>
+        </p>
+      </header>
+
+      <section class="panel search-panel">
+        <label class="search-label" for="pair-search">搜索方向</label>
+        <div class="search-row">
+          <input
+            type="search"
+            id="pair-search"
+            class="search-input"
+            placeholder="交易所名称，如 Gate、币安、OKX → Binance"
+            autocomplete="off"
+          />
+          <button type="button" class="btn btn-ghost" id="btn-expand-all">全部展开</button>
+          <button type="button" class="btn btn-ghost" id="btn-collapse-all">全部收起</button>
+        </div>
+        <p class="search-hint">
+          显示 <span id="search-count" class="mono">42</span> / 42 个板块 · 点击标题折叠/展开 · 各板块内可选 K 线周期
+        </p>
+      </section>
+
+      <div id="blocks-list" class="blocks-list" aria-label="42 组价差 K 线板块">
+        <p class="loading">正在加载 42 个板块…</p>
+      </div>
+
+      <footer class="footer">
+        <p>数据文件：<code>data/spread_ticks.ndjson</code> · 请保持 <code>./start.sh</code> 持续运行以积累历史</p>
+      </footer>
+    </div>
+    <script src="/history.js"></script>
+  </body>
+</html>

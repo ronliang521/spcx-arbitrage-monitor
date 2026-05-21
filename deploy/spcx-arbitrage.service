@@ -1,0 +1,16 @@
+[Unit]
+Description=SPCX Arbitrage Monitor (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/spcx-arbitrage-monitor
+Environment=HOST=0.0.0.0
+Environment=PORT=8080
+ExecStart=/usr/bin/python3 /opt/spcx-arbitrage-monitor/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

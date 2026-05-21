@@ -1,0 +1,3 @@
+# 仅给 ./share.sh 用的最小配置，避免读取 ~/.cloudflared 里命名隧道的 http2 设置
+protocol: quic
+edge-ip-version: "4"

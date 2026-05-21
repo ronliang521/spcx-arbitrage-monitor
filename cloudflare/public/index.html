@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPCX · SpaceX 多市场套利监控</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="err-banner" class="banner err" role="alert" hidden></div>
+
+      <header>
+        <div class="header-row">
+          <div>
+            <h1>SPCX · SpaceX 多市场套利监控</h1>
+            <p class="subtitle">
+              聚合 Binance / OKX / Bitget / Gate / MEXC / Aster / trade.xyz 公开行情 ·
+              隐含估值按各所公告股本口径 · 每 <span id="poll-sec">5</span>s 刷新
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn btn-ghost" id="btn-refresh">立即刷新</button>
+            <button type="button" class="btn btn-ghost" id="btn-theme" title="切换主题">切换模式</button>
+          </div>
+        </div>
+        <p class="meta-line">
+          上次更新：<span id="last-updated" class="mono">—</span>
+          <span id="fetch-status" class="status-pill">加载中</span>
+        </p>
+      </header>
+
+      <section class="panel" aria-labelledby="markets-title">
+        <h2 id="markets-title">各市场 SpaceX 标的实时数据</h2>
+        <p class="hint">
+          股本与隐含估值口径来自各交易所公告（见「股份说明」）。<strong>永续合约</strong>（Binance / OKX / MEXC / Aster / trade.xyz）与
+          <strong>现货 Pre-IPO</strong>（Gate / Bitget）报价单位不同：合约价多在 $200–$2,400 区间，现货认购价约 $590–$874。
+          套利对比请用下方<strong>隐含估值价差矩阵</strong>（= 价格 × 固定股本），勿直接比裸价。
+        </p>
+        <div class="table-scroll">
+          <table class="data-table" id="markets-table">
+            <thead>
+              <tr>
+                <th>代币名称</th>
+                <th>类型</th>
+                <th>交易所</th>
+                <th>股份</th>
+                <th>实时价格 (USDT)</th>
+                <th>隐含估值</th>
+                <th>24H 交易量</th>
+                <th>链接</th>
+              </tr>
+            </thead>
+            <tbody id="markets-body">
+              <tr><td colspan="8" class="loading">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="spread-title">
+        <h2 id="spread-title">价差显示 · 隐含估值 %</h2>
+        <p class="hint" id="spread-note">—</p>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="impl" role="tab" aria-selected="true">隐含估值价差</button>
+          <button type="button" class="tab" data-tab="raw" role="tab" aria-selected="false">裸价 USDT 价差（参考）</button>
+        </div>
+        <div class="table-scroll matrix-wrap">
+          <table class="matrix-table" id="spread-table">
+            <thead id="spread-head"></thead>
+            <tbody id="spread-body">
+              <tr><td colspan="9" class="loading">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          数据源：各交易所公开 REST / Hyperliquid info API。股本口径：Binance/Aster/trade.xyz 118.7 亿股；OKX 10 亿股；Gate
+          $1.4T÷$590；Bitget/MEXC $1.5T÷$650。
+        </p>
+      </footer>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

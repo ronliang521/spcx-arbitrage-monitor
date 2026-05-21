@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPCX · SpaceX 多市场套利监控</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="err-banner" class="banner err" role="alert" hidden></div>
+
+      <nav class="site-nav" aria-label="页面导航">
+        <a href="/" class="active">SPCX 套利监控</a>
+        <a href="/history.html">价差历史数据</a>
+      </nav>
+
+      <header class="hero">
+        <div class="header-row">
+          <div>
+            <p class="eyebrow">SpaceX Pre-IPO · 7 市场</p>
+            <h1>SPCX 套利监控</h1>
+            <p class="subtitle">
+              Binance · OKX · Bitget · Gate · MEXC · Aster · trade.xyz · 每
+              <span id="poll-sec">5</span>s 自动刷新
+            </p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn" id="btn-refresh">立即刷新</button>
+            <button type="button" class="btn btn-ghost" id="btn-theme">切换模式</button>
+          </div>
+        </div>
+        <p class="meta-line">
+          上次更新：<span id="last-updated" class="mono">—</span>
+          <span id="fetch-status" class="status-pill">加载中</span>
+        </p>
+      </header>
+
+      <section class="highlights panel" id="highlights-section" hidden aria-label="价差亮点">
+        <h2>隐含估值价差 · Top</h2>
+        <div id="highlights" class="highlight-grid"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="markets-title">
+        <h2 id="markets-title">各市场 SpaceX 标的实时数据</h2>
+        <p class="hint">
+          股本口径来自各所公告。<strong>永续</strong>与<strong>现货 Pre-IPO</strong>报价单位不同，套利请看下方矩阵（价格 × 固定股本）。
+        </p>
+        <div class="table-scroll">
+          <table class="data-table" id="markets-table">
+            <thead>
+              <tr>
+                <th>代币名称</th>
+                <th>
+                  <button type="button" class="th-sort" data-sort="type" aria-label="按类型排序">
+                    类型 <span class="sort-indicator" aria-hidden="true"></span>
+                  </button>
+                </th>
+                <th>交易所</th>
+                <th>股份</th>
+                <th>实时价格 (USDT)</th>
+                <th>隐含估值</th>
+                <th>
+                  <button type="button" class="th-sort" data-sort="volume24h" aria-label="按 24H 成交额排序">
+                    24H 成交额 <span class="sort-indicator" aria-hidden="true"></span>
+                  </button>
+                </th>
+                <th>链接</th>
+              </tr>
+            </thead>
+            <tbody id="markets-body">
+              <tr><td colspan="8" class="loading">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="spread-title">
+        <h2 id="spread-title">价差矩阵</h2>
+        <p class="spread-calc" id="spread-calc">
+          <strong>计算方式：</strong>价差 % = (列 − 行) ÷ 行 × 100%。<strong>列为卖方</strong>，<strong>行为买方</strong>。斜对角为「—」。
+        </p>
+        <div class="table-scroll">
+          <table class="matrix-table" id="spread-table">
+            <thead id="spread-head"></thead>
+            <tbody id="spread-body">
+              <tr><td colspan="9" class="loading">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>本地网页 · <code>./start.sh</code> 或 <code>python3 server.py</code> · 端口 8080</p>
+      </footer>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>
