@@ -437,8 +437,8 @@ def build_snapshot() -> Dict[str, Any]:
         "markets": results,
         "highlights": highlights[:6],
         "spread": {
-            "note": "价差%=(列−行)/行×100%；列为卖方，行为买方",
-            "formula": "(列 − 行) ÷ 行 × 100%",
+            "note": "价差%=(列÷行−1)×100%；行/列为隐含估值；列为卖方，行为买方；正数列高于行",
+            "formula": "(列 ÷ 行 − 1) × 100%",
             "columns": cols,
             "rows": matrix_rows,
         },

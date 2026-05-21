@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# 安装：./deploy/install-git-hook.sh
+# 每次 git push 成功后自动部署到默认 VPS
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+exec "${ROOT}/deploy/deploy-vps.sh"

@@ -1,0 +1,20 @@
+# 复制到 VPS：/root/.cloudflared/config.yml
+# 与 Mac 上 ~/.cloudflared 同隧道 ID，但 spcx 指向本机 8080（SPCX 监控）
+
+tunnel: 04e1e6a6-65e2-47e1-8c85-ffaa6454f65d
+credentials-file: /root/.cloudflared/04e1e6a6-65e2-47e1-8c85-ffaa6454f65d.json
+protocol: http2
+edge-ip-version: "4"
+dns-resolver-addrs:
+  - "1.1.1.1:53"
+  - "1.0.0.1:53"
+
+ingress:
+  - hostname: spcx.lumigzs.com
+    service: http://127.0.0.1:8080
+  # 若 spacex / lab 仍跑在 Mac 上，下面两条在 VPS 隧道里无效，可删掉
+  # - hostname: spacex.lumigzs.com
+  #   service: http://127.0.0.1:8767
+  # - hostname: lab.lumigzs.com
+  #   service: http://127.0.0.1:8777
+  - service: http_status:404
