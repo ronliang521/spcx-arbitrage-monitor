@@ -273,6 +273,9 @@ function renderSpreadMatrix(spread) {
 if (!window.__matrixSellerBandResize) {
   window.__matrixSellerBandResize = true;
   window.addEventListener("resize", () => alignMatrixSellerBand());
+  document.querySelector(".matrix-scroll")?.addEventListener("scroll", () => alignMatrixSellerBand(), {
+    passive: true,
+  });
 }
 
 async function fetchQuote() {
