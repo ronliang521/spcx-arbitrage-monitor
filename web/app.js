@@ -181,6 +181,20 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
+const MATRIX_SELLER_COLS = ["binance", "okx", "tradexyz"];
+
+function splitMatrixColumns(colKeys) {
+  const before = [];
+  const seller = [];
+  const after = [];
+  for (const key of colKeys) {
+    if (MATRIX_SELLER_COLS.includes(key)) seller.push(key);
+    else if (key === "aster") after.push(key);
+    else before.push(key);
+  }
+  return { before, seller, after };
+}
+
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
@@ -190,19 +204,24 @@ function renderSpreadMatrix(spread) {
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
   const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
-  const sellerColCount = colKeys.length;
-  const totalColCount = sellerColCount + 1;
+  const { before, seller, after } = splitMatrixColumns(colKeys);
+  const totalColCount = 1 + before.length + 1 + seller.length + after.length;
 
-  const sellerHeaderCells = colKeys
-    .map((key) => `<th>${labelByKey[key]}</th>`)
-    .join("");
+  const row2Headers = [
+    ...before.map((key) => `<th>${labelByKey[key]}</th>`),
+    ...seller.map((key) => `<th>${labelByKey[key]}</th>`),
+    ...after.map((key) => `<th>${labelByKey[key]}</th>`),
+  ].join("");
 
   head.innerHTML = `
     <tr>
+      <th class="matrix-corner" rowspan="2"></th>
+      <th colspan="${before.length}" class="matrix-head-blank"></th>
       <th rowspan="2" class="matrix-axis-buyer">买方</th>
-      <th colspan="${sellerColCount}" class="matrix-axis-seller">卖方</th>
+      <th colspan="${seller.length}" class="matrix-axis-seller">卖方</th>
+      <th class="matrix-head-blank"></th>
     </tr>
-    <tr>${sellerHeaderCells}</tr>`;
+    <tr>${row2Headers}</tr>`;
 
   const rows = spread.rows || [];
 
@@ -211,18 +230,27 @@ function renderSpreadMatrix(spread) {
     return;
   }
 
+  function dataCell(row, colId) {
+    const cell = row.cells?.[colId] ?? {};
+    const self = cell.self === true;
+    const cls = self ? "matrix-self" : cellClass(cell.pct);
+    return `<td class="${cls}">${cell.label ?? "—"}</td>`;
+  }
+
+  function buyerCell(row) {
+    return `<td class="matrix-buyer-name"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
+  }
+
   body.innerHTML = rows
     .map((row) => {
-      const buyerCell = `<td class="matrix-buyer-name"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
-      const dataCells = colKeys
-        .map((colId) => {
-          const cell = row.cells?.[colId] ?? {};
-          const self = cell.self === true;
-          const cls = self ? "matrix-self" : cellClass(cell.pct);
-          return `<td class="${cls}">${cell.label ?? "—"}</td>`;
-        })
-        .join("");
-      return `<tr>${buyerCell}${dataCells}</tr>`;
+      const cells = [
+        `<td class="matrix-corner-body"></td>`,
+        ...before.map((colId) => dataCell(row, colId)),
+        buyerCell(row),
+        ...seller.map((colId) => dataCell(row, colId)),
+        ...after.map((colId) => dataCell(row, colId)),
+      ].join("");
+      return `<tr>${cells}</tr>`;
     })
     .join("");
 }

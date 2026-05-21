@@ -298,8 +298,22 @@ body {
   color: var(--muted);
 }
 
+.matrix-table th.matrix-head-blank,
+.matrix-table td.matrix-corner-body {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.matrix-table th.matrix-corner,
+.matrix-table td.matrix-corner-body {
+  min-width: 0.5rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
 .matrix-table th.matrix-axis-seller {
   text-align: center;
+  vertical-align: middle;
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
@@ -310,20 +324,29 @@ body {
 
 .matrix-table th.matrix-axis-buyer {
   text-align: center;
+  vertical-align: middle;
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   background: rgba(147, 197, 253, 0.16);
   border-right: 2px solid rgba(147, 197, 253, 0.35);
-  vertical-align: middle;
+  border-left: 2px solid rgba(147, 197, 253, 0.35);
   min-width: 5.5rem;
 }
 
 .matrix-table td.matrix-buyer-name {
+  text-align: center;
+  vertical-align: middle;
   font-weight: 600;
   background: rgba(147, 197, 253, 0.08);
   border-right: 2px solid rgba(147, 197, 253, 0.2);
+  border-left: 2px solid rgba(147, 197, 253, 0.2);
+}
+
+.matrix-table td.matrix-buyer-name code {
+  display: block;
+  margin-top: 0.15rem;
 }
 
 .tabs {
