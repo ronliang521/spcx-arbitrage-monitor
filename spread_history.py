@@ -16,8 +16,6 @@ from matrix_config import (
 
 HISTORY_MAX_TICKS = 300_000
 HIST_APPEND_MIN_MS = 4_500
-# 2026-05-21 起矩阵改为 (列÷行−1)；此前落盘为 (行÷列−1)，读取时需换算
-FORMULA_V2_CUTOFF_MS = 1_779_377_901_000
 FORMULA_TEXT = "(列 ÷ 行 − 1) × 100%"
 
 _lock = threading.Lock()
@@ -30,16 +28,11 @@ def _pair_key(row_id: str, col_id: str) -> str:
 
 
 def _effective_pct(tick: Dict[str, Any]) -> float:
-    """统一为当前矩阵口径 (列÷行−1)×100。"""
+    """读取落盘 pct；仅当明确标记 fv=1 时才做旧公式换算（避免误伤已是列÷行的历史）。"""
     pct = float(tick["pct"])
-    fv = tick.get("fv")
-    if fv in (2, "2"):
-        return pct
-    ts = int(tick.get("t") or 0)
-    if ts >= FORMULA_V2_CUTOFF_MS:
-        return pct
-    # 旧口径 (行÷列−1)
-    return -pct / (1.0 + pct / 100.0)
+    if tick.get("fv") in (1, "1"):
+        return -pct / (1.0 + pct / 100.0)
+    return pct
 
 
 def init_history(data_dir: Path) -> None:
