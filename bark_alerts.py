@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -334,6 +335,88 @@ def evaluate_spread_hits(
 def format_test_notification() -> tuple[str, str]:
     """测试推送：标题固定为「测试」。"""
     return "测试", "SPCX Bark 连接正常，可接收价差提醒。"
+
+
+def load_bark_cooldown(path: Path) -> Dict[str, int]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if not isinstance(raw, dict):
+            return {}
+        return {str(k): int(v) for k, v in raw.items() if isinstance(v, (int, float))}
+    except Exception:
+        return {}
+
+
+def save_bark_cooldown(path: Path, state: Dict[str, int]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False)
+        f.write("\n")
+    tmp.replace(path)
+
+
+def filter_hits_by_cooldown(
+    hits: List[Dict[str, Any]],
+    *,
+    cooldown_seconds: int,
+    cooldown_path: Path,
+    now_ms: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """按方向冷却，避免同一 pair 短时间重复推送。"""
+    if not hits:
+        return []
+    now = now_ms if now_ms is not None else int(time.time() * 1000)
+    cd = max(30, int(cooldown_seconds)) * 1000
+    state = load_bark_cooldown(cooldown_path)
+    out: List[Dict[str, Any]] = []
+    for h in hits:
+        key = str(h.get("pairKey") or "")
+        if not key:
+            continue
+        if now - int(state.get(key, 0)) < cd:
+            continue
+        out.append(h)
+        state[key] = now
+    if out:
+        save_bark_cooldown(cooldown_path, state)
+    return out
+
+
+def process_spread_bark_alerts(
+    spread: Dict[str, Any],
+    cfg: BarkConfig,
+    *,
+    cooldown_path: Path,
+    col_labels: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """服务端价差 Bark：评估 → 冷却过滤 → 推送。"""
+    if not cfg.enabled:
+        return {"ok": True, "skipped": "disabled", "hitCount": 0, "pushed": 0}
+    hits = evaluate_spread_hits(spread, cfg, col_labels=col_labels)
+    if not hits:
+        return {"ok": True, "hitCount": 0, "pushed": 0}
+    to_send = filter_hits_by_cooldown(
+        hits, cooldown_seconds=cfg.cooldown_seconds, cooldown_path=cooldown_path
+    )
+    if not to_send:
+        return {
+            "ok": True,
+            "hitCount": len(hits),
+            "pushed": 0,
+            "skipped": "cooldown",
+        }
+    title, body = format_spread_notification(to_send, threshold_pct=cfg.threshold_pct)
+    push = push_to_bindings(cfg, title=title, body=body)
+    return {
+        "ok": bool(push.get("ok")),
+        "hitCount": len(hits),
+        "pushed": push.get("sent", 0),
+        "push": push,
+    }
 
 
 def format_spread_notification(hits: List[Dict[str, Any]], *, threshold_pct: float) -> tuple[str, str]:

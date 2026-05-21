@@ -2,8 +2,12 @@
 """本地网页服务：静态页面 + /api/quote 聚合七所行情。"""
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
+import threading
 import time
+from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -26,6 +30,7 @@ from bark_alerts import (
     load_bark_config,
     merge_config_update,
     normalize_bark_url,
+    process_spread_bark_alerts,
     push_to_bindings,
     save_bark_config,
 )
@@ -41,10 +46,15 @@ ROOT = Path(__file__).resolve().parent
 WEB_DIR = ROOT / "web"
 DATA_DIR = ROOT / "data"
 BARK_CONFIG_PATH = DATA_DIR / "bark_config.json"
+BARK_COOLDOWN_PATH = DATA_DIR / "bark_cooldown.json"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
+BARK_POLL_SEC = 30
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 5
+CONFIG_REVISION = 6
+
+_log = logging.getLogger("spcx.bark")
+_bark_lock = threading.Lock()
 
 VENUES: List[Dict[str, Any]] = [
     {
@@ -464,7 +474,65 @@ def build_snapshot() -> Dict[str, Any]:
     }
 
 
-app = FastAPI(title="SPCX Arbitrage Monitor")
+def _snapshot_for_bark() -> Dict[str, Any]:
+    t = _now_ms()
+    if _quote_cache["payload"] and t - _quote_cache["at_ms"] < 60_000:
+        return _quote_cache["payload"]
+    payload = build_snapshot()
+    _quote_cache["at_ms"] = t
+    _quote_cache["payload"] = payload
+    return payload
+
+
+def _bark_tick() -> None:
+    """后台 Bark：不依赖浏览器打开监控页。"""
+    with _bark_lock:
+        try:
+            cfg = load_bark_config(BARK_CONFIG_PATH, valid_pair_keys=_matrix_pair_keys())
+            if not cfg.enabled:
+                return
+            payload = _snapshot_for_bark()
+            spread = payload.get("spread") if isinstance(payload.get("spread"), dict) else {}
+            result = process_spread_bark_alerts(
+                spread,
+                cfg,
+                cooldown_path=BARK_COOLDOWN_PATH,
+                col_labels=MATRIX_COL_LABELS,
+            )
+            pushed = int(result.get("pushed") or 0)
+            if pushed > 0:
+                _log.info(
+                    "bark pushed %s device(s), hits=%s",
+                    pushed,
+                    result.get("hitCount"),
+                )
+        except Exception:
+            _log.exception("bark tick failed")
+
+
+async def _bark_monitor_loop() -> None:
+    while True:
+        await asyncio.to_thread(_bark_tick)
+        try:
+            cfg = load_bark_config(BARK_CONFIG_PATH)
+            interval = BARK_POLL_SEC if cfg.enabled else 60
+        except Exception:
+            interval = BARK_POLL_SEC
+        await asyncio.sleep(interval)
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    task = asyncio.create_task(_bark_monitor_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="SPCX Arbitrage Monitor", lifespan=_lifespan)
 init_history(DATA_DIR)
 
 
@@ -473,11 +541,13 @@ def api_quote() -> JSONResponse:
     t = _now_ms()
     if _quote_cache["payload"] and t - _quote_cache["at_ms"] < QUOTE_CACHE_TTL_MS:
         record_from_snapshot(_quote_cache["payload"], MATRIX_COL_LABELS, data_dir=DATA_DIR)
+        threading.Thread(target=_bark_tick, daemon=True).start()
         return JSONResponse(_quote_cache["payload"])
     payload = build_snapshot()
     record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
     _quote_cache["at_ms"] = t
     _quote_cache["payload"] = payload
+    threading.Thread(target=_bark_tick, daemon=True).start()
     return JSONResponse(payload)
 
 

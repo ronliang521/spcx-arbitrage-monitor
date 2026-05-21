@@ -214,9 +214,15 @@
     if (st) {
       const n = config.activeBindingCount ?? 0;
       const apiHint = barkApiOk ? "" : " · 配置仅本机缓存";
-      st.textContent = config.enabled
-        ? `监控中 · ${n} 个 Bark${apiHint} · ${lastStatus}`
-        : `已暂停${apiHint} · ${lastStatus}`;
+      if (!config.enabled) {
+        const ready =
+          n > 0 && (config.watchPairs?.length || 0) > 0
+            ? `阈值 ${Number(config.thresholdPct ?? 1).toFixed(2)}% · ${n} 个 Bark 已绑定`
+            : "请先绑定 Bark 并选择提醒方向";
+        st.textContent = `监控未开启 — 请打开标题旁开关（服务端 7×24 推送） · ${ready}${apiHint}`;
+      } else {
+        st.textContent = `监控中 · ${n} 个 Bark${apiHint} · ${lastStatus}`;
+      }
     }
   }
 
