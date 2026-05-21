@@ -40,20 +40,20 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-/** 矩阵 API：row=卖方、col=买方；历史页展示为 买方 → 卖方（前者买、后者卖） */
+/** 矩阵计算：行为卖方、列为买方；板块标题展示：前者(行)=买方 → 后者(列)=卖方 */
 function pairLegs(pair) {
-  let sellName = "";
-  let buyName = "";
+  let rowName = "";
+  let colName = "";
   if (pair.label && pair.label.includes("→")) {
     const parts = pair.label.split(/\s*→\s*/).map((s) => s.trim());
-    sellName = parts[0] || "";
-    buyName = parts[1] || "";
+    rowName = parts[0] || "";
+    colName = parts[1] || "";
   }
-  if (!sellName) sellName = pair.row || "";
-  if (!buyName) buyName = pair.col || "";
+  if (!rowName) rowName = pair.row || "";
+  if (!colName) colName = pair.col || "";
   return {
-    buyName: normalizeVenueName(buyName),
-    sellName: normalizeVenueName(sellName),
+    buyName: normalizeVenueName(rowName),
+    sellName: normalizeVenueName(colName),
   };
 }
 
