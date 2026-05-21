@@ -211,63 +211,6 @@ body {
   table-layout: fixed;
 }
 
-.matrix-frame {
-  display: flex;
-  align-items: stretch;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.matrix-panel {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.matrix-axis {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1;
-  background: rgba(94, 234, 212, 0.12);
-  box-sizing: border-box;
-  user-select: none;
-}
-
-.matrix-axis-buyer {
-  flex: 0 0 2.75rem;
-  align-self: stretch;
-  border-right: 2px solid rgba(94, 234, 212, 0.35);
-}
-
-.matrix-axis-buyer span,
-.matrix-axis-seller span {
-  display: block;
-  letter-spacing: 0.12em;
-}
-
-.matrix-axis-buyer span {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-}
-
-.matrix-axis-seller {
-  flex: 0 0 2.5rem;
-  width: 100%;
-  border-bottom: 2px solid rgba(94, 234, 212, 0.35);
-}
-
-.matrix-axis-seller span {
-  writing-mode: horizontal-tb;
-}
-
 .matrix-col-label {
   width: 8.5rem;
 }
