@@ -181,19 +181,9 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
+/** 买方列插在 binance 前；卖方行仅覆盖 binance / okx / trade.xyz */
+const MATRIX_BUYER_BEFORE = "binance";
 const MATRIX_SELLER_COLS = ["binance", "okx", "tradexyz"];
-
-function splitMatrixColumns(colKeys) {
-  const before = [];
-  const seller = [];
-  const after = [];
-  for (const key of colKeys) {
-    if (MATRIX_SELLER_COLS.includes(key)) seller.push(key);
-    else if (key === "aster") after.push(key);
-    else before.push(key);
-  }
-  return { before, seller, after };
-}
 
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
@@ -204,24 +194,24 @@ function renderSpreadMatrix(spread) {
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
   const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
-  const { before, seller, after } = splitMatrixColumns(colKeys);
-  const totalColCount = 1 + before.length + 1 + seller.length + after.length;
 
-  const row2Headers = [
-    ...before.map((key) => `<th>${labelByKey[key]}</th>`),
-    ...seller.map((key) => `<th>${labelByKey[key]}</th>`),
-    ...after.map((key) => `<th>${labelByKey[key]}</th>`),
-  ].join("");
+  const splitAt = colKeys.indexOf(MATRIX_BUYER_BEFORE);
+  const colsLeft = colKeys.slice(0, splitAt);
+  const colsRight = colKeys.slice(splitAt);
+  const sellerSpan = MATRIX_SELLER_COLS.length;
+  const totalColCount = colKeys.length + 1;
+
+  const row2Left = colsLeft.map((k) => `<th>${labelByKey[k]}</th>`).join("");
+  const row2Right = colsRight.map((k) => `<th>${labelByKey[k]}</th>`).join("");
 
   head.innerHTML = `
     <tr>
-      <th class="matrix-corner" rowspan="2"></th>
-      <th colspan="${before.length}" class="matrix-head-blank"></th>
+      <th colspan="${colsLeft.length}" class="matrix-pad"></th>
       <th rowspan="2" class="matrix-axis-buyer">买方</th>
-      <th colspan="${seller.length}" class="matrix-axis-seller">卖方</th>
-      <th class="matrix-head-blank"></th>
+      <th colspan="${sellerSpan}" class="matrix-axis-seller">卖方</th>
+      <th colspan="${colsRight.length - sellerSpan}" class="matrix-pad"></th>
     </tr>
-    <tr>${row2Headers}</tr>`;
+    <tr>${row2Left}${row2Right}</tr>`;
 
   const rows = spread.rows || [];
 
@@ -243,14 +233,16 @@ function renderSpreadMatrix(spread) {
 
   body.innerHTML = rows
     .map((row) => {
-      const cells = [
-        `<td class="matrix-corner-body"></td>`,
-        ...before.map((colId) => dataCell(row, colId)),
-        buyerCell(row),
-        ...seller.map((colId) => dataCell(row, colId)),
-        ...after.map((colId) => dataCell(row, colId)),
-      ].join("");
-      return `<tr>${cells}</tr>`;
+      const leftCells = colsLeft.map((colId) => dataCell(row, colId)).join("");
+      const rightCells = colsRight
+        .map((colId) => {
+          if (colId === MATRIX_BUYER_BEFORE) {
+            return buyerCell(row) + dataCell(row, colId);
+          }
+          return dataCell(row, colId);
+        })
+        .join("");
+      return `<tr>${leftCells}${rightCells}</tr>`;
     })
     .join("");
 }

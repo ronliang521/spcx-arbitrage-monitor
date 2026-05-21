@@ -208,13 +208,20 @@ body {
 }
 
 .data-table th,
-.data-table td,
-.matrix-table th,
-.matrix-table td {
+.data-table td {
   padding: 0.55rem 0.65rem;
   border-bottom: 1px solid var(--border);
   text-align: left;
   white-space: nowrap;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .data-table th,
@@ -298,22 +305,13 @@ body {
   color: var(--muted);
 }
 
-.matrix-table th.matrix-head-blank,
-.matrix-table td.matrix-corner-body {
+.matrix-table th.matrix-pad {
   background: transparent;
   border-bottom: 1px solid var(--border);
 }
 
-.matrix-table th.matrix-corner,
-.matrix-table td.matrix-corner-body {
-  min-width: 0.5rem;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
-}
-
 .matrix-table th.matrix-axis-seller {
   text-align: center;
-  vertical-align: middle;
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
@@ -324,7 +322,6 @@ body {
 
 .matrix-table th.matrix-axis-buyer {
   text-align: center;
-  vertical-align: middle;
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
@@ -336,17 +333,11 @@ body {
 }
 
 .matrix-table td.matrix-buyer-name {
-  text-align: center;
-  vertical-align: middle;
   font-weight: 600;
+  text-align: center;
   background: rgba(147, 197, 253, 0.08);
   border-right: 2px solid rgba(147, 197, 253, 0.2);
   border-left: 2px solid rgba(147, 197, 253, 0.2);
-}
-
-.matrix-table td.matrix-buyer-name code {
-  display: block;
-  margin-top: 0.15rem;
 }
 
 .tabs {
