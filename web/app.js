@@ -181,34 +181,64 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
+const MATRIX_BUYER_BEFORE = "binance";
+
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
   if (!spread) return;
 
   const cols = spread.columns || [];
-  head.innerHTML = `<tr>${cols.map((c) => `<th>${c.label}</th>`).join("")}</tr>`;
+  const marketCols = cols.filter((c) => c.key !== "token");
+  const colKeys = marketCols.map((c) => c.key);
+  const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
+  const matrixColCount = colKeys.length + 1;
+
+  const marketHeaderCells = colKeys
+    .map((key) => {
+      if (key === MATRIX_BUYER_BEFORE) {
+        return `<th class="matrix-axis-buyer">买方</th>`;
+      }
+      return `<th>${labelByKey[key]}</th>`;
+    })
+    .join("");
+
+  head.innerHTML = `
+    <tr>
+      <th class="matrix-corner" rowspan="2"></th>
+      <th colspan="${matrixColCount}" class="matrix-axis-seller">卖方</th>
+    </tr>
+    <tr>${marketHeaderCells}</tr>`;
 
   const rows = spread.rows || [];
-  const colKeys = cols.map((c) => c.key).filter((k) => k !== "token");
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="${cols.length}" class="loading">无数据</td></tr>`;
+    body.innerHTML = `<tr><td colspan="${matrixColCount}" class="loading">无数据</td></tr>`;
     return;
+  }
+
+  function dataCell(row, colId) {
+    const cell = row.cells?.[colId] ?? {};
+    const self = cell.self === true;
+    const cls = self ? "matrix-self" : cellClass(cell.pct);
+    return `<td class="${cls}">${cell.label ?? "—"}</td>`;
+  }
+
+  function buyerCell(row) {
+    return `<td class="matrix-buyer-name"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
   }
 
   body.innerHTML = rows
     .map((row) => {
-      const tokenCell = `<td><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
-      const dataCells = colKeys
+      const cells = colKeys
         .map((colId) => {
-          const cell = row.cells?.[colId] ?? {};
-          const self = cell.self === true;
-          const cls = self ? "matrix-self" : cellClass(cell.pct);
-          return `<td class="${cls}">${cell.label ?? "—"}</td>`;
+          if (colId === MATRIX_BUYER_BEFORE) {
+            return buyerCell(row) + dataCell(row, colId);
+          }
+          return dataCell(row, colId);
         })
         .join("");
-      return `<tr>${tokenCell}${dataCells}</tr>`;
+      return `<tr>${cells}</tr>`;
     })
     .join("");
 }

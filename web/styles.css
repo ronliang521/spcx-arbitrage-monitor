@@ -298,6 +298,34 @@ body {
   color: var(--muted);
 }
 
+.matrix-table th.matrix-corner {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel, rgba(15, 23, 42, 0.6));
+}
+
+.matrix-table th.matrix-axis-seller {
+  text-align: center;
+  color: var(--text, #e2e8f0);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(94, 234, 212, 0.08);
+  border-bottom: 1px solid var(--border);
+}
+
+.matrix-table th.matrix-axis-buyer {
+  text-align: center;
+  color: var(--text, #e2e8f0);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(147, 197, 253, 0.1);
+  vertical-align: middle;
+}
+
+.matrix-table td.matrix-buyer-name {
+  font-weight: 600;
+  background: rgba(147, 197, 253, 0.05);
+}
+
 .tabs {
   display: flex;
   gap: 0.35rem;
