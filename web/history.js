@@ -6,6 +6,35 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 const TF_OPTIONS = ["1m", "5m", "15m", "1h"];
+const TZ8 = "Asia/Shanghai";
+
+function formatTs8(ms, opts = {}) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return new Date(n).toLocaleString("zh-CN", {
+    timeZone: TZ8,
+    hour12: false,
+    ...opts,
+  });
+}
+
+function chartTimeFormatter(time) {
+  const sec =
+    typeof time === "number"
+      ? time
+      : time && typeof time === "object" && "timestamp" in time
+        ? time.timestamp
+        : null;
+  if (sec == null || !Number.isFinite(sec)) return "";
+  return new Date(sec * 1000).toLocaleString("zh-CN", {
+    timeZone: TZ8,
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 let pairsCatalog = [];
 let blocksInitialized = false;
 let searchQuery = "";
@@ -88,7 +117,7 @@ function pairFromBlock(block) {
   return { key: block.dataset.pair, row, col, label };
 }
 
-/** 去重、升序、过滤非法 OHLC，供 Lightweight Charts 使用（time 为 UTC 秒）。 */
+/** 去重、升序、过滤非法 OHLC；time 为 UTC 秒，坐标轴用 UTC+8 格式化。 */
 function sanitizeCandles(raw) {
   const map = new Map();
   for (const c of raw || []) {
@@ -148,6 +177,10 @@ function createChart(el) {
     },
     rightPriceScale: { borderVisible: false },
     timeScale: { timeVisible: true, secondsVisible: false },
+    localization: {
+      locale: "zh-CN",
+      timeFormatter: chartTimeFormatter,
+    },
     crosshair: { mode: 0 },
     width: w,
     height: 220,
@@ -322,11 +355,11 @@ async function renderAll() {
     }
 
     if (meta.firstTs && meta.lastTs) {
-      const a = new Date(meta.firstTs).toLocaleString("zh-CN", { hour12: false });
-      const b = new Date(meta.lastTs).toLocaleString("zh-CN", { hour12: false });
+      const a = formatTs8(meta.firstTs);
+      const b = formatTs8(meta.lastTs);
       const withData = meta.pairsWithData ?? "—";
       const note = meta.formulaNote ? ` · ${meta.formulaNote}` : "";
-      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}${note}`;
+      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}（UTC+8）${note}`;
     } else {
       $("#hist-meta").textContent = `0 点 · 请打开监控页并保持 server 运行以写入 42 组价差`;
     }

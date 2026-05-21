@@ -17,6 +17,8 @@ from matrix_config import (
 HISTORY_MAX_TICKS = 300_000
 HIST_APPEND_MIN_MS = 4_500
 FORMULA_TEXT = "(列 ÷ 行 − 1) × 100%"
+# K 线周期按 UTC+8（北京时间）对齐；t 字段仍为 UTC 秒时间戳
+TZ8_OFFSET_MS = 8 * 60 * 60 * 1000
 
 _lock = threading.Lock()
 _ticks: List[Dict[str, Any]] = []
@@ -160,7 +162,7 @@ def ticks_to_candles(ticks: List[Dict[str, Any]], tf: str) -> List[Dict[str, Any
             continue
         if val != val:  # NaN
             continue
-        b = (ts // tf_ms) * tf_ms
+        b = ((ts + TZ8_OFFSET_MS) // tf_ms) * tf_ms - TZ8_OFFSET_MS
         buckets.setdefault(b, []).append(val)
     candles: List[Dict[str, Any]] = []
     for b in sorted(buckets.keys()):
@@ -218,5 +220,6 @@ def history_meta() -> Dict[str, Any]:
         "firstTs": first,
         "lastTs": last,
         "formula": FORMULA_TEXT,
-        "formulaNote": "与监控页价差矩阵一致；列为买方、行为卖方",
+        "formulaNote": "与监控页价差矩阵一致；列为买方、行为卖方；K 线周期 UTC+8",
+        "timezone": "Asia/Shanghai",
     }
