@@ -16,5 +16,5 @@ if [[ -n "${OLD_PID}" ]]; then
 fi
 
 echo "启动网页 http://127.0.0.1:8080"
-echo "确认版本：打开 http://127.0.0.1:8080/api/quote 应含 \"configRevision\": 3"
+echo "确认版本：打开 http://127.0.0.1:8080/api/bark/config 应返回 ok:true（含 Bark 提醒）"
 exec python3 server.py

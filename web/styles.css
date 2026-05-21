@@ -316,6 +316,36 @@ body {
   border-right: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   min-width: 6.5rem;
+  vertical-align: middle;
+}
+
+.matrix-venue-head {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.matrix-table th .matrix-venue-head {
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.matrix-table td.matrix-row-label .matrix-venue-head {
+  justify-content: flex-start;
+}
+
+.tag-matrix {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+
+.matrix-token {
+  font-size: 0.78em;
+  color: var(--muted);
 }
 
 .tabs {
@@ -687,6 +717,46 @@ a:hover {
 }
 
 /* Bark 价差监控 */
+.bark-panel-details {
+  padding: 0;
+  overflow: hidden;
+}
+
+.bark-panel-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  padding: 1rem 1rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.bark-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bark-panel-summary h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.bark-panel-toggle-hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.bark-panel-body {
+  padding: 0 1rem 1.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.bark-panel-body .hint {
+  margin-top: 0.75rem;
+}
+
 .bark-panel-head {
   display: flex;
   flex-wrap: wrap;
@@ -749,10 +819,64 @@ a:hover {
   flex: 1;
 }
 
+.bark-pairs-details {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+html[data-theme="light"] .bark-pairs-details {
+  background: rgba(2, 6, 23, 0.03);
+}
+
+.bark-pairs-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.bark-pairs-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bark-pairs-summary .bark-filter-label {
+  min-width: auto;
+}
+
+.filter-pill-summary {
+  cursor: default;
+  pointer-events: none;
+  border-style: solid;
+}
+
+.bark-pairs-toggle-hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.bark-pairs-body {
+  padding: 0 0.75rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.bark-pairs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem 0 0.45rem;
+}
+
 .filter-chips-matrix {
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
-  padding: 0.25rem 0;
+  padding: 0.15rem 0 0.25rem;
 }
 
 .filter-chip-pair {

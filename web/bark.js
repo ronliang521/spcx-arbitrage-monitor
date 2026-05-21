@@ -4,6 +4,8 @@
 (function () {
   const COOLDOWN_LS = "spcx_bark_cooldown_ms";
   const BARK_LS_KEY = "spcx_bark_config_v2";
+  const PAIRS_OPEN_LS = "spcx_bark_pairs_open";
+  const PANEL_OPEN_LS = "spcx_bark_panel_open";
   const $ = (sel, root) => (root || document).querySelector(sel);
 
   let config = null;
@@ -114,6 +116,64 @@
       .join("");
   }
 
+  function syncPairsCollapseHint() {
+    const details = $("#bark-pairs-details");
+    const hint = $("#bark-pairs-toggle-hint");
+    if (!details || !hint) return;
+    const open = details.open;
+    hint.textContent = open ? "收起" : "展开";
+    try {
+      localStorage.setItem(PAIRS_OPEN_LS, open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function syncPanelCollapseHint() {
+    const details = $("#bark-panel-details");
+    const hint = $("#bark-panel-toggle-hint");
+    if (!details || !hint) return;
+    hint.textContent = details.open ? "收起" : "展开";
+    try {
+      localStorage.setItem(PANEL_OPEN_LS, details.open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function initPanelCollapse() {
+    const details = $("#bark-panel-details");
+    if (!details) return;
+    try {
+      const saved = localStorage.getItem(PANEL_OPEN_LS);
+      if (saved === "1") details.open = true;
+      else if (saved === "0") details.open = false;
+      else details.open = false;
+    } catch {
+      details.open = false;
+    }
+    syncPanelCollapseHint();
+    details.addEventListener("toggle", syncPanelCollapseHint);
+
+    const enableWrap = $("#bark-enable-switch-wrap");
+    enableWrap?.addEventListener("click", (e) => e.stopPropagation());
+  }
+
+  function initPairsCollapse() {
+    const details = $("#bark-pairs-details");
+    if (!details) return;
+    try {
+      const saved = localStorage.getItem(PAIRS_OPEN_LS);
+      if (saved === "1") details.open = true;
+      else if (saved === "0") details.open = false;
+      else details.open = false;
+    } catch {
+      details.open = false;
+    }
+    syncPairsCollapseHint();
+    details.addEventListener("toggle", syncPairsCollapseHint);
+  }
+
   function renderSummary() {
     if (!config) return;
     const enabled = $("#bark-enabled-toggle");
@@ -121,6 +181,7 @@
 
     const pairsPill = $("#bark-pairs-pill");
     if (pairsPill) pairsPill.textContent = watchPairsLabel(config);
+    syncPairsCollapseHint();
 
     const thPill = $("#bark-threshold-pill");
     if (thPill) thPill.textContent = thresholdLabel(config);
@@ -135,6 +196,23 @@
       st.textContent = config.enabled
         ? `监控中 · ${n} 个 Bark${apiHint} · ${lastStatus}`
         : `已暂停${apiHint} · ${lastStatus}`;
+    }
+  }
+
+  /** 探测 /api/bark/config 是否可用（测试推送前会再试一次） */
+  async function ensureBarkApi() {
+    if (barkApiOk) return true;
+    try {
+      const r = await fetch("/api/bark/config", { cache: "no-store" });
+      if (!r.ok) return false;
+      const data = await r.json();
+      config = data.config || config || defaultConfig();
+      barkApiOk = true;
+      writeLocalConfig(config);
+      renderSummary();
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -181,7 +259,7 @@
       ).length;
     }
 
-    if (barkApiOk) {
+    if (barkApiOk || (await ensureBarkApi())) {
       const r = await fetch("/api/bark/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -228,11 +306,12 @@
     if (!config) return;
     const set = new Set(config.watchPairs || []);
     if (set.has(pairKey)) {
-      if (set.size <= 1) {
-        alert("至少保留 1 个方向，或先关闭「启用监控」");
+      set.delete(pairKey);
+      if (!set.size) {
+        lastStatus = "已无监控方向，已自动暂停提醒";
+        await saveConfig({ watchPairs: [], enabled: false });
         return;
       }
-      set.delete(pairKey);
     } else {
       set.add(pairKey);
     }
@@ -332,8 +411,10 @@
     syncBindingsFromForm();
     const b = bindingsDraft.find((x) => x.id === bindingId);
     if (!b?.url?.trim()) throw new Error("请先填写 Bark 链接");
-    if (!barkApiOk) {
-      throw new Error("Bark 测试推送需要服务端 API，请先部署并重启 server");
+    if (!(await ensureBarkApi())) {
+      throw new Error(
+        "无法连接 Bark 后端。请在项目目录执行 ./start.sh 重启（旧进程没有 /api/bark/* 接口）。"
+      );
     }
     const r = await fetch("/api/bark/test", {
       method: "POST",
@@ -373,8 +454,8 @@
       renderSummary();
       return;
     }
-    if (!barkApiOk) {
-      lastStatus = "服务端 Bark API 不可用，无法推送";
+    if (!(await ensureBarkApi())) {
+      lastStatus = "Bark API 不可用，请 ./start.sh 重启服务";
       renderSummary();
       return;
     }
@@ -428,6 +509,9 @@
   }
 
   function bindUi() {
+    initPanelCollapse();
+    initPairsCollapse();
+
     $("#bark-enabled-toggle")?.addEventListener("change", async (e) => {
       if (e.target.checked && !(config?.watchPairs?.length)) {
         e.target.checked = false;
@@ -464,7 +548,7 @@
 
     $("#btn-bark-clear-pairs")?.addEventListener("click", async () => {
       if (!matrixPairs.length) return;
-      if (!confirm("清空所有已选方向？启用监控将自动关闭。")) return;
+      lastStatus = "已无监控方向，已自动暂停提醒";
       await saveConfig({ watchPairs: [], enabled: false });
     });
 

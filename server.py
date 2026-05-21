@@ -14,7 +14,12 @@ from fastapi import Body, FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from matrix_config import EXPECTED_SPREAD_PAIRS, MATRIX_COLS, MATRIX_COL_LABELS
+from matrix_config import (
+    EXPECTED_SPREAD_PAIRS,
+    MATRIX_COLS,
+    MATRIX_COL_LABELS,
+    market_type_meta,
+)
 from bark_alerts import (
     evaluate_spread_hits,
     load_bark_config,
@@ -38,7 +43,7 @@ BARK_CONFIG_PATH = DATA_DIR / "bark_config.json"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 4
+CONFIG_REVISION = 5
 
 VENUES: List[Dict[str, Any]] = [
     {
@@ -397,11 +402,15 @@ def build_snapshot() -> Dict[str, Any]:
                 "label": "—" if pct is None else f"{pct:+.2f}%",
                 "colImpl": col.get("impliedValuation"),
             }
+        row_meta = market_type_meta(row_id)
         matrix_rows.append(
             {
                 "id": row_id,
                 "token": row["token"],
                 "exchange": row["exchange"],
+                "type": row_meta["type"],
+                "typeShort": row_meta["typeShort"],
+                "typeKind": row_meta["typeKind"],
                 "rowImpl": row_impl,
                 "rowImplDisplay": _fmt_usd(row_impl),
                 "cells": cells,
@@ -426,9 +435,18 @@ def build_snapshot() -> Dict[str, Any]:
             )
     highlights.sort(key=lambda x: abs(x["pct"]), reverse=True)
 
-    cols = [{"key": "token", "label": "代币"}] + [
-        {"key": k, "label": MATRIX_COL_LABELS[k]} for k in MATRIX_COLS
-    ]
+    cols = [{"key": "token", "label": "代币"}]
+    for k in MATRIX_COLS:
+        col_meta = market_type_meta(k)
+        cols.append(
+            {
+                "key": k,
+                "label": MATRIX_COL_LABELS[k],
+                "type": col_meta["type"],
+                "typeShort": col_meta["typeShort"],
+                "typeKind": col_meta["typeKind"],
+            }
+        )
 
     return {
         "ok": True,

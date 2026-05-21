@@ -100,30 +100,41 @@
         </div>
       </section>
 
-      <section class="panel bark-panel" aria-labelledby="bark-monitor-title">
-        <div class="bark-panel-head">
+      <details class="panel bark-panel bark-panel-details" id="bark-panel-details" aria-labelledby="bark-monitor-title">
+        <summary class="bark-panel-summary">
           <h2 id="bark-monitor-title">Bark 价差监控提醒</h2>
-          <label class="bark-enable-switch">
+          <label class="bark-enable-switch" id="bark-enable-switch-wrap">
             <input type="checkbox" id="bark-enabled-toggle" />
             <span>启用监控</span>
           </label>
-        </div>
+          <span class="bark-panel-toggle-hint mono" id="bark-panel-toggle-hint">展开</span>
+        </summary>
+        <div class="bark-panel-body">
         <p class="hint">
           从<strong>价差历史</strong>同款 <strong>42 组</strong>方向勾选监控；当该格 <code>|价差%|</code> <strong>≥ 阈值</strong> 时，向已绑定的
           <strong>Bark 链接</strong> 推送（配置保存在 <code>data/bark_config.json</code>）。
         </p>
 
         <div class="bark-filter-grid">
-          <div class="bark-filter-row">
-            <span class="bark-filter-label">提醒事件</span>
-            <button type="button" class="filter-pill" id="bark-pairs-pill" title="矩阵方向筛选">—</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-select-all">全选</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-clear-pairs">清空</button>
-          </div>
-          <div class="bark-filter-row bark-pairs-chips-row">
-            <span class="bark-filter-label" aria-hidden="true"></span>
-            <div id="bark-pairs-chips" class="filter-chips filter-chips-matrix" role="group" aria-label="价差矩阵方向"></div>
-          </div>
+          <details class="bark-pairs-details" id="bark-pairs-details">
+            <summary class="bark-pairs-summary">
+              <span class="bark-filter-label">提醒事件</span>
+              <span class="filter-pill filter-pill-summary" id="bark-pairs-pill" title="已选方向数量">—</span>
+              <span class="bark-pairs-toggle-hint mono" id="bark-pairs-toggle-hint">展开</span>
+            </summary>
+            <div class="bark-pairs-body">
+              <div class="bark-pairs-actions">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-select-all">全选</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-clear-pairs">清空</button>
+              </div>
+              <div
+                id="bark-pairs-chips"
+                class="filter-chips filter-chips-matrix"
+                role="group"
+                aria-label="价差历史 42 组方向"
+              ></div>
+            </div>
+          </details>
           <div class="bark-filter-row">
             <span class="bark-filter-label">阈值</span>
             <button type="button" class="filter-pill" id="bark-threshold-pill" title="点击修改提醒阈值">—</button>
@@ -135,7 +146,8 @@
           </div>
         </div>
         <p class="bark-status-line mono" id="bark-monitor-status">—</p>
-      </section>
+        </div>
+      </details>
 
       <div id="bark-threshold-modal" class="modal-backdrop" hidden aria-hidden="true">
         <div class="modal" role="dialog" aria-labelledby="bark-threshold-modal-title">
@@ -179,7 +191,7 @@
         <p>本地网页 · <code>./start.sh</code> 或 <code>python3 server.py</code> · 端口 8080</p>
       </footer>
     </div>
-    <script src="/bark.js?v=3"></script>
-    <script src="/app.js?v=bark-monitor"></script>
+    <script src="/bark.js?v=7"></script>
+    <script src="/app.js?v=matrix-market-type-2"></script>
   </body>
 </html>

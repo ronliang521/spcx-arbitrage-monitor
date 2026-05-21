@@ -181,6 +181,44 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
+/** 与 matrix_config / server 一致；旧版 API 无 typeShort 时前端兜底 */
+const VENUE_MARKET_META = {
+  binance: { typeShort: "合约", typeKind: "futures" },
+  okx: { typeShort: "合约", typeKind: "futures" },
+  bitget: { typeShort: "现货", typeKind: "spot" },
+  gate: { typeShort: "现货", typeKind: "spot" },
+  mexc: { typeShort: "现货", typeKind: "spot" },
+  aster: { typeShort: "合约", typeKind: "futures" },
+  tradexyz: { typeShort: "合约", typeKind: "futures" },
+};
+
+function venueMarketMeta(venueId) {
+  return VENUE_MARKET_META[venueId] || { typeShort: "—", typeKind: "futures" };
+}
+
+function matrixMarketTag(typeKind, typeShort) {
+  const kind = typeKind === "spot" ? "spot" : "futures";
+  const text = typeShort || (kind === "spot" ? "现货" : "合约");
+  return `<span class="tag tag-matrix ${kind}">${text}</span>`;
+}
+
+function matrixColHeader(col) {
+  const label = col.label || col.key || "";
+  const meta = venueMarketMeta(col.key);
+  const typeShort = col.typeShort || meta.typeShort;
+  const typeKind = col.typeKind || meta.typeKind;
+  const tag = matrixMarketTag(typeKind, typeShort);
+  return `<span class="matrix-venue-head"><strong>${label}</strong>${tag}</span>`;
+}
+
+function matrixRowLabel(row) {
+  const meta = venueMarketMeta(row.id);
+  const typeShort = row.typeShort || meta.typeShort;
+  const typeKind = row.typeKind || meta.typeKind;
+  const tag = matrixMarketTag(typeKind, typeShort);
+  return `<td class="matrix-row-label"><span class="matrix-venue-head"><strong>${row.exchange}</strong>${tag}</span><br><code class="matrix-token">${row.token}</code></td>`;
+}
+
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
@@ -189,11 +227,11 @@ function renderSpreadMatrix(spread) {
   const cols = spread.columns || [];
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
-  const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
+  const colByKey = Object.fromEntries(marketCols.map((c) => [c.key, c]));
   const totalColCount = colKeys.length + 1;
 
   const sellerHeaderCells = colKeys
-    .map((key) => `<th>${labelByKey[key]}</th>`)
+    .map((key) => `<th>${matrixColHeader(colByKey[key])}</th>`)
     .join("");
 
   head.innerHTML = `
@@ -211,7 +249,7 @@ function renderSpreadMatrix(spread) {
 
   body.innerHTML = rows
     .map((row) => {
-      const rowLabel = `<td class="matrix-row-label"><strong>${row.exchange}</strong><br><code style="font-size:0.78em">${row.token}</code></td>`;
+      const rowLabel = matrixRowLabel(row);
       const dataCells = colKeys
         .map((colId) => {
           const cell = row.cells?.[colId] ?? {};
