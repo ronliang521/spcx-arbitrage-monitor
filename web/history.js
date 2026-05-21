@@ -40,26 +40,26 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-/** 矩阵：行为卖方、列为买方；展示为 卖方 → 买方 */
+/** 矩阵 API：row=卖方、col=买方；历史页展示为 买方 → 卖方（前者买、后者卖） */
 function pairLegs(pair) {
-  let rowName = "";
-  let colName = "";
+  let sellName = "";
+  let buyName = "";
   if (pair.label && pair.label.includes("→")) {
     const parts = pair.label.split(/\s*→\s*/).map((s) => s.trim());
-    rowName = parts[0] || "";
-    colName = parts[1] || "";
+    sellName = parts[0] || "";
+    buyName = parts[1] || "";
   }
-  if (!rowName) rowName = pair.row || "";
-  if (!colName) colName = pair.col || "";
+  if (!sellName) sellName = pair.row || "";
+  if (!buyName) buyName = pair.col || "";
   return {
-    sellName: normalizeVenueName(rowName),
-    buyName: normalizeVenueName(colName),
+    buyName: normalizeVenueName(buyName),
+    sellName: normalizeVenueName(sellName),
   };
 }
 
 function pairTitleHtml(pair) {
   const { buyName, sellName } = pairLegs(pair);
-  return `<span class="pair-leg pair-leg-sell"><span class="pair-leg-name">${escapeHtml(sellName)}</span><span class="pair-leg-role">卖方</span></span><span class="pair-arrow" aria-hidden="true">→</span><span class="pair-leg pair-leg-buy"><span class="pair-leg-name">${escapeHtml(buyName)}</span><span class="pair-leg-role">买方</span></span>`;
+  return `<span class="pair-leg pair-leg-buy"><span class="pair-leg-name">${escapeHtml(buyName)}</span><span class="pair-leg-role">买方</span></span><span class="pair-arrow" aria-hidden="true">→</span><span class="pair-leg pair-leg-sell"><span class="pair-leg-name">${escapeHtml(sellName)}</span><span class="pair-leg-role">卖方</span></span>`;
 }
 
 function pairSearchText(pair) {
