@@ -181,27 +181,56 @@ function renderMarkets(markets) {
   bindSharesToggles(tbody);
 }
 
+function alignMatrixSellerBand() {
+  const band = document.getElementById("matrix-seller-band");
+  const table = document.getElementById("spread-table");
+  if (!band || !table) return;
+
+  const headRow = table.querySelector("#spread-head tr");
+  if (!headRow) {
+    band.hidden = true;
+    return;
+  }
+
+  const cells = headRow.querySelectorAll("th");
+  if (cells.length < 3) {
+    band.hidden = true;
+    return;
+  }
+
+  const firstMarket = cells[2];
+  const lastMarket = cells[cells.length - 1];
+  const scroll = table.closest(".matrix-scroll");
+  if (!scroll) return;
+
+  const sr = scroll.getBoundingClientRect();
+  const a = firstMarket.getBoundingClientRect();
+  const b = lastMarket.getBoundingClientRect();
+  const left = a.left - sr.left + scroll.scrollLeft;
+  const width = b.right - a.left;
+
+  band.style.left = `${left}px`;
+  band.style.width = `${Math.max(width, 0)}px`;
+  band.hidden = width < 8;
+}
+
 function renderSpreadMatrix(spread) {
   const head = $("#spread-head");
   const body = $("#spread-body");
+  const band = document.getElementById("matrix-seller-band");
   if (!spread) return;
 
   const cols = spread.columns || [];
   const marketCols = cols.filter((c) => c.key !== "token");
   const colKeys = marketCols.map((c) => c.key);
   const labelByKey = Object.fromEntries(marketCols.map((c) => [c.key, c.label]));
-  const sellerColCount = colKeys.length;
-  const totalColCount = sellerColCount + 2;
+  const totalColCount = colKeys.length + 2;
 
   const sellerHeaderCells = colKeys
     .map((key) => `<th>${labelByKey[key]}</th>`)
     .join("");
 
   head.innerHTML = `
-    <tr>
-      <th colspan="2" class="matrix-head-spacer"></th>
-      <th colspan="${sellerColCount}" class="matrix-axis-seller">卖方</th>
-    </tr>
     <tr>
       <th class="matrix-head-spacer-buyer" aria-hidden="true"></th>
       <th class="matrix-row-axis"></th>
@@ -212,6 +241,7 @@ function renderSpreadMatrix(spread) {
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="${totalColCount}" class="loading">无数据</td></tr>`;
+    if (band) band.hidden = true;
     return;
   }
 
@@ -233,6 +263,16 @@ function renderSpreadMatrix(spread) {
       return `<tr>${buyerAxis}${rowLabel}${dataCells}</tr>`;
     })
     .join("");
+
+  requestAnimationFrame(() => {
+    alignMatrixSellerBand();
+    requestAnimationFrame(alignMatrixSellerBand);
+  });
+}
+
+if (!window.__matrixSellerBandResize) {
+  window.__matrixSellerBandResize = true;
+  window.addEventListener("resize", () => alignMatrixSellerBand());
 }
 
 async function fetchQuote() {

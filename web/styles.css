@@ -207,6 +207,46 @@ body {
   font-size: 0.88rem;
 }
 
+.matrix-table {
+  table-layout: fixed;
+}
+
+.matrix-scroll {
+  position: relative;
+  padding-top: 2.35rem;
+}
+
+.matrix-seller-band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-bottom: 2px solid rgba(94, 234, 212, 0.35);
+  background: rgba(94, 234, 212, 0.14);
+  border-radius: 8px 8px 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.matrix-seller-band span {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.matrix-col-buyer {
+  width: 3.2rem;
+}
+
+.matrix-col-label {
+  width: 8.5rem;
+}
+
 .data-table th,
 .data-table td,
 .matrix-table th,
@@ -306,18 +346,6 @@ body {
 .matrix-table th.matrix-row-axis {
   min-width: 6.5rem;
   border-right: 1px solid var(--border);
-}
-
-.matrix-table th.matrix-axis-seller {
-  text-align: center;
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  background: rgba(94, 234, 212, 0.14);
-  border-bottom: 2px solid rgba(94, 234, 212, 0.35);
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
 }
 
 .matrix-table th.matrix-head-spacer-buyer {
