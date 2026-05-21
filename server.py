@@ -197,10 +197,10 @@ def _fmt_shares_display(shares: float, venue_id: str) -> str:
 
 
 def _spread_pct(row_impl: Optional[float], col_impl: Optional[float]) -> Optional[float]:
-    """价差 % = (行 ÷ 列 − 1) × 100；行=左侧交易所，列=表头交易所。"""
-    if row_impl is None or col_impl is None or col_impl <= 0:
+    """价差 % = (列 ÷ 行 − 1) × 100；行=左侧交易所，列=表头交易所。"""
+    if row_impl is None or col_impl is None or row_impl <= 0:
         return None
-    return ((row_impl / col_impl) - 1) * 100.0
+    return ((col_impl / row_impl) - 1) * 100.0
 
 
 def _fetch_binance() -> Dict[str, Any]:
