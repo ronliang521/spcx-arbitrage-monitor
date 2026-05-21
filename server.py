@@ -196,10 +196,11 @@ def _fmt_shares_display(shares: float, venue_id: str) -> str:
     return f"{shares:,.0f} 股"
 
 
-def _spread_pct(a: Optional[float], b: Optional[float]) -> Optional[float]:
-    if a is None or b is None or a <= 0:
+def _spread_pct(row_impl: Optional[float], col_impl: Optional[float]) -> Optional[float]:
+    """价差 % = (行 ÷ 列 − 1) × 100；行=左侧交易所，列=表头交易所。"""
+    if row_impl is None or col_impl is None or col_impl <= 0:
         return None
-    return ((b - a) / a) * 100.0
+    return ((row_impl / col_impl) - 1) * 100.0
 
 
 def _fetch_binance() -> Dict[str, Any]:
@@ -437,8 +438,8 @@ def build_snapshot() -> Dict[str, Any]:
         "markets": results,
         "highlights": highlights[:6],
         "spread": {
-            "note": "价差%=(列÷行−1)×100%；行/列为隐含估值；列为卖方，行为买方；正数列高于行",
-            "formula": "(列 ÷ 行 − 1) × 100%",
+            "note": "价差%=(行÷列−1)×100%；行=左侧、列=表头；均为隐含估值；正数行高于列",
+            "formula": "(行 ÷ 列 − 1) × 100%",
             "columns": cols,
             "rows": matrix_rows,
         },

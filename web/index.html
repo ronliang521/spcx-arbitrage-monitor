@@ -84,7 +84,7 @@
       <section class="panel" aria-labelledby="spread-title">
         <h2 id="spread-title">价差矩阵</h2>
         <p class="spread-calc" id="spread-calc">
-          <strong>计算方式：</strong>行、列均为各所<strong>隐含估值</strong>（最新价 × 该所股本口径）。价差 % = (列 ÷ 行 − 1) × 100%。<strong>列为卖方</strong>，<strong>行为买方</strong>；<strong>正数</strong>表示列估值高于行（在行买、在列卖），<strong>负数</strong>则相反。斜对角为「—」。
+          <strong>计算方式：</strong><strong>行</strong> = 本行左侧交易所，<strong>列</strong> = 本列表头交易所；二者均为<strong>隐含估值</strong>（最新价 × 该所股本口径）。价差 % = (<strong>行 ÷ 列</strong> − 1) × 100%。<strong>正数</strong>表示行估值高于列（在列买、在行卖），<strong>负数</strong>则相反。例：Binance 行 × Gate 列 = Binance÷Gate−1，不是 Gate÷Binance。斜对角为「—」。
         </p>
         <div class="table-scroll">
           <table class="matrix-table" id="spread-table">
