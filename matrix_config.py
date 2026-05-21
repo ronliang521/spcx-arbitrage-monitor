@@ -6,7 +6,7 @@ MATRIX_COL_LABELS = {
     "gate": "Gate",
     "bitget": "Bitget",
     "mexc": "MEXC",
-    "binance": "币安",
+    "binance": "Binance",
     "okx": "OKX",
     "tradexyz": "trade.xyz",
     "aster": "Aster",

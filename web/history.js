@@ -25,8 +25,43 @@ function chartTextColor() {
   return getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#eef2f8";
 }
 
+const VENUE_DISPLAY_ALIASES = { 币安: "Binance" };
+
+function normalizeVenueName(name) {
+  const s = String(name || "").trim();
+  return VENUE_DISPLAY_ALIASES[s] || s;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** 板块标题：label 为「行所 → 列所」，前者买方、后者卖方。 */
+function pairLegs(pair) {
+  let buyName = "";
+  let sellName = "";
+  if (pair.label && pair.label.includes("→")) {
+    const parts = pair.label.split(/\s*→\s*/).map((s) => s.trim());
+    buyName = parts[0] || "";
+    sellName = parts[1] || "";
+  }
+  if (!buyName) buyName = pair.row || "";
+  if (!sellName) sellName = pair.col || "";
+  return { buyName: normalizeVenueName(buyName), sellName: normalizeVenueName(sellName) };
+}
+
+function pairTitleHtml(pair) {
+  const { buyName, sellName } = pairLegs(pair);
+  return `<span class="pair-leg pair-leg-buy"><span class="pair-leg-name">${escapeHtml(buyName)}</span><span class="pair-leg-role">买方</span></span><span class="pair-arrow" aria-hidden="true">→</span><span class="pair-leg pair-leg-sell"><span class="pair-leg-name">${escapeHtml(sellName)}</span><span class="pair-leg-role">卖方</span></span>`;
+}
+
 function pairSearchText(pair) {
-  return `${pair.label} ${pair.row} ${pair.col} ${pair.key}`.toLowerCase();
+  const { buyName, sellName } = pairLegs(pair);
+  return `${pair.label} ${buyName} ${sellName} 买方 卖方 ${pair.row} ${pair.col} ${pair.key}`.toLowerCase();
 }
 
 function getBlockTf(block) {
@@ -41,18 +76,13 @@ function blockTfButtonsHtml(activeTf = "1m") {
 }
 
 function pairFromBlock(block) {
-  return (
-    pairsCatalog.find((x) => x.key === block.dataset.pair) ||
-    (() => {
-      const [row, col] = (block.dataset.pair || "").split("|");
-      return {
-        key: block.dataset.pair,
-        row,
-        col,
-        label: block.querySelector(".pair-block-title")?.textContent || "",
-      };
-    })()
-  );
+  const found = pairsCatalog.find((x) => x.key === block.dataset.pair);
+  if (found) return found;
+  const [row, col] = (block.dataset.pair || "").split("|");
+  const buyName = block.querySelector(".pair-leg-buy .pair-leg-name")?.textContent?.trim() || "";
+  const sellName = block.querySelector(".pair-leg-sell .pair-leg-name")?.textContent?.trim() || "";
+  const label = buyName && sellName ? `${buyName} → ${sellName}` : "";
+  return { key: block.dataset.pair, row, col, label };
 }
 
 /** 去重、升序、过滤非法 OHLC，供 Lightweight Charts 使用（time 为 UTC 秒）。 */
@@ -161,7 +191,7 @@ function ensureBlock(pair, index) {
   block.innerHTML = `
     <summary class="pair-block-summary">
       <span class="pair-block-index mono">${index + 1}</span>
-      <span class="pair-block-title">${pair.label}</span>
+      <span class="pair-block-title">${pairTitleHtml(pair)}</span>
       <span class="pair-chevron" aria-hidden="true">▼</span>
     </summary>
     <div class="pair-block-body">
@@ -292,8 +322,7 @@ async function renderAll() {
       const a = new Date(meta.firstTs).toLocaleString("zh-CN", { hour12: false });
       const b = new Date(meta.lastTs).toLocaleString("zh-CN", { hour12: false });
       const withData = meta.pairsWithData ?? "—";
-      const formula = meta.formula ? ` · ${meta.formula}` : "";
-      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}${formula}`;
+      $("#hist-meta").textContent = `${meta.tickCount} 点 · 有数据 ${withData}/${EXPECTED_PAIRS} 组 · ${a} ~ ${b}`;
     } else {
       $("#hist-meta").textContent = `0 点 · 请打开监控页并保持 server 运行以写入 42 组价差`;
     }

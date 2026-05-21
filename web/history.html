@@ -27,8 +27,10 @@
             <p class="eyebrow">价差矩阵 · 落盘 K 线</p>
             <h1>价差历史数据</h1>
             <p class="subtitle">
-              价差矩阵 <span id="charts-count" class="mono">42 组</span> 方向，每组独立一张 K 线图 ·
-              价差 % = (列 ÷ 行 − 1) × 100%（与监控页一致）
+              价差矩阵 <span id="charts-count" class="mono">42 组</span> 方向，每组独立一张 K 线图
+            </p>
+            <p class="spread-calc">
+              <strong>计算方式：</strong>行、列数值均为隐含估值（最新价 × 该所股本口径）。价差 % = (行 ÷ 列 − 1) × 100%。列为买方、行为卖方
             </p>
           </div>
           <div class="header-actions">
@@ -48,7 +50,7 @@
             type="search"
             id="pair-search"
             class="search-input"
-            placeholder="交易所名称，如 Gate、币安、OKX → Binance"
+            placeholder="交易所名称，如 Gate、Binance、OKX"
             autocomplete="off"
           />
           <button type="button" class="btn btn-ghost" id="btn-expand-all">全部展开</button>
@@ -71,6 +73,6 @@
       src="/vendor/lightweight-charts.standalone.production.js"
       onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js'"
     ></script>
-    <script src="/history.js?v=4"></script>
+    <script src="/history.js?v=7"></script>
   </body>
 </html>

@@ -10,11 +10,19 @@ from typing import Any, Dict, List, Optional
 
 import requests
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import Body, FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from matrix_config import EXPECTED_SPREAD_PAIRS, MATRIX_COLS, MATRIX_COL_LABELS
+from bark_alerts import (
+    evaluate_spread_hits,
+    load_bark_config,
+    merge_config_update,
+    normalize_bark_url,
+    push_to_bindings,
+    save_bark_config,
+)
 from spread_history import (
     get_candles,
     history_meta,
@@ -26,6 +34,7 @@ from spread_history import (
 ROOT = Path(__file__).resolve().parent
 WEB_DIR = ROOT / "web"
 DATA_DIR = ROOT / "data"
+BARK_CONFIG_PATH = DATA_DIR / "bark_config.json"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
@@ -475,6 +484,69 @@ def api_spread_history_candles(
     if tf not in ("1m", "5m", "15m", "1h"):
         tf = "1m"
     return JSONResponse(get_candles(row, col, tf))
+
+
+def _matrix_pair_keys() -> set:
+    return {p["key"] for p in list_pairs()}
+
+
+@app.get("/api/bark/config")
+def api_bark_config_get() -> JSONResponse:
+    valid = _matrix_pair_keys()
+    cfg = load_bark_config(BARK_CONFIG_PATH, valid_pair_keys=valid)
+    return JSONResponse(
+        {
+            "ok": True,
+            "config": cfg.to_public(),
+            "matrixPairs": list_pairs(),
+        }
+    )
+
+
+@app.post("/api/bark/config")
+def api_bark_config_post(payload: Dict[str, Any] = Body(...)) -> JSONResponse:
+    valid = _matrix_pair_keys()
+    current = load_bark_config(BARK_CONFIG_PATH, valid_pair_keys=valid)
+    cfg = merge_config_update(current, payload, valid_pair_keys=valid)
+    save_bark_config(BARK_CONFIG_PATH, cfg)
+    return JSONResponse({"ok": True, "config": cfg.to_public()})
+
+
+@app.post("/api/bark/evaluate")
+def api_bark_evaluate(payload: Dict[str, Any] = Body(...)) -> JSONResponse:
+    cfg = load_bark_config(BARK_CONFIG_PATH, valid_pair_keys=_matrix_pair_keys())
+    spread = payload.get("spread") if isinstance(payload.get("spread"), dict) else {}
+    hits = evaluate_spread_hits(spread, cfg, col_labels=MATRIX_COL_LABELS)
+    return JSONResponse({"ok": True, "hits": hits[:30], "hitCount": len(hits)})
+
+
+@app.post("/api/bark/push")
+def api_bark_push(payload: Dict[str, Any] = Body(...)) -> JSONResponse:
+    cfg = load_bark_config(BARK_CONFIG_PATH)
+    title = str(payload.get("title") or cfg.title).strip() or cfg.title
+    body = str(payload.get("body") or "").strip()
+    if not body:
+        return JSONResponse({"ok": False, "error": "empty_body"}, status_code=400)
+    urls_raw = payload.get("urls")
+    urls = None
+    if isinstance(urls_raw, list):
+        urls = [normalize_bark_url(u) for u in urls_raw if normalize_bark_url(u)]
+    result = push_to_bindings(cfg, title=title, body=body, urls=urls)
+    return JSONResponse(result)
+
+
+@app.post("/api/bark/test")
+def api_bark_test(payload: Dict[str, Any] = Body(...)) -> JSONResponse:
+    cfg = load_bark_config(BARK_CONFIG_PATH)
+    url = normalize_bark_url(
+        payload.get("url") or payload.get("barkUrl") or payload.get("key") or ""
+    )
+    if not url:
+        return JSONResponse({"ok": False, "error": "missing_url"}, status_code=400)
+    title = str(payload.get("title") or cfg.title).strip() or cfg.title
+    body = str(payload.get("body") or "SPCX Bark 测试推送").strip()
+    result = push_to_bindings(cfg, title=title, body=body, urls=[url])
+    return JSONResponse(result)
 
 
 app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")

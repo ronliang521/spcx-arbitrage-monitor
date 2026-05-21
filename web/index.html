@@ -84,7 +84,7 @@
       <section class="panel" aria-labelledby="spread-title">
         <h2 id="spread-title">价差矩阵</h2>
         <p class="spread-calc" id="spread-calc">
-          <strong>计算方式：</strong>行、列数值均为隐含估值（最新价 × 该所股本口径）。价差 % = (列 ÷ 行 − 1) × 100%
+          <strong>计算方式：</strong>行、列数值均为隐含估值（最新价 × 该所股本口径）。价差 % = (行 ÷ 列 − 1) × 100%。列为买方、行为卖方
         </p>
         <div class="table-scroll">
           <table class="matrix-table" id="spread-table">
@@ -100,10 +100,86 @@
         </div>
       </section>
 
+      <section class="panel bark-panel" aria-labelledby="bark-monitor-title">
+        <div class="bark-panel-head">
+          <h2 id="bark-monitor-title">Bark 价差监控提醒</h2>
+          <label class="bark-enable-switch">
+            <input type="checkbox" id="bark-enabled-toggle" />
+            <span>启用监控</span>
+          </label>
+        </div>
+        <p class="hint">
+          从<strong>价差历史</strong>同款 <strong>42 组</strong>方向勾选监控；当该格 <code>|价差%|</code> <strong>≥ 阈值</strong> 时，向已绑定的
+          <strong>Bark 链接</strong> 推送（配置保存在 <code>data/bark_config.json</code>）。
+        </p>
+
+        <div class="bark-filter-grid">
+          <div class="bark-filter-row">
+            <span class="bark-filter-label">提醒事件</span>
+            <button type="button" class="filter-pill" id="bark-pairs-pill" title="矩阵方向筛选">—</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-select-all">全选</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-bark-clear-pairs">清空</button>
+          </div>
+          <div class="bark-filter-row bark-pairs-chips-row">
+            <span class="bark-filter-label" aria-hidden="true"></span>
+            <div id="bark-pairs-chips" class="filter-chips filter-chips-matrix" role="group" aria-label="价差矩阵方向"></div>
+          </div>
+          <div class="bark-filter-row">
+            <span class="bark-filter-label">阈值</span>
+            <button type="button" class="filter-pill" id="bark-threshold-pill" title="点击修改提醒阈值">—</button>
+          </div>
+          <div class="bark-filter-row">
+            <span class="bark-filter-label">Bark 绑定</span>
+            <div id="bark-bindings-chips" class="binding-chips-wrap"></div>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-manage-bark">管理</button>
+          </div>
+        </div>
+        <p class="bark-status-line mono" id="bark-monitor-status">—</p>
+      </section>
+
+      <div id="bark-threshold-modal" class="modal-backdrop" hidden aria-hidden="true">
+        <div class="modal" role="dialog" aria-labelledby="bark-threshold-modal-title">
+          <div class="modal-head">
+            <h3 id="bark-threshold-modal-title">提醒阈值</h3>
+            <button type="button" class="btn btn-ghost btn-sm" data-close-modal="#bark-threshold-modal">关闭</button>
+          </div>
+          <div class="modal-body">
+            <p class="hint">与上方价差矩阵同源：当某格 <strong>|价差%| ≥ 阈值</strong> 时触发 Bark（仅对已勾选方向生效）。</p>
+            <label class="field">
+              <span>阈值（%）</span>
+              <input id="bark-threshold-input" type="number" step="0.01" min="0" value="1" />
+            </label>
+            <div class="modal-actions">
+              <button type="button" class="btn" id="btn-bark-threshold-save">保存</button>
+              <button type="button" class="btn btn-ghost" id="btn-bark-threshold-cancel">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="bark-bindings-modal" class="modal-backdrop" hidden aria-hidden="true">
+        <div class="modal modal-wide" role="dialog" aria-labelledby="bark-bindings-modal-title">
+          <div class="modal-head">
+            <h3 id="bark-bindings-modal-title">Bark 绑定（多同事）</h3>
+            <button type="button" class="btn btn-ghost btn-sm" data-close-modal="#bark-bindings-modal">关闭</button>
+          </div>
+          <div class="modal-body">
+            <p class="hint">粘贴同事提供的 Bark 推送链接，例如 <code>https://api.day.app/xxxxxxxx/</code>；留空则保留已保存链接。</p>
+            <div id="bark-bindings-form" class="bindings-form"></div>
+            <div class="modal-actions">
+              <button type="button" class="btn" id="btn-add-binding">新增同事</button>
+              <button type="button" class="btn" id="btn-bark-bindings-save">保存</button>
+              <button type="button" class="btn btn-ghost" id="btn-bark-bindings-cancel">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <footer class="footer">
         <p>本地网页 · <code>./start.sh</code> 或 <code>python3 server.py</code> · 端口 8080</p>
       </footer>
     </div>
-    <script src="/app.js?v=spread-col-row"></script>
+    <script src="/bark.js?v=3"></script>
+    <script src="/app.js?v=bark-monitor"></script>
   </body>
 </html>

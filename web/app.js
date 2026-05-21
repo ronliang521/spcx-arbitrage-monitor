@@ -247,6 +247,7 @@ async function fetchQuote() {
     lastMarkets = data.markets;
     renderMarkets(lastMarkets);
     renderSpreadMatrix(data.spread);
+    window.SpcxBark?.onQuote?.(data);
 
     const errs = (data.markets || []).filter((m) => m.error).length;
     status.textContent = errs ? `${errs} 路异常` : "正常";
