@@ -53,7 +53,7 @@ BARK_POLL_SEC = 30
 # 略高于 spread_history.HIST_APPEND_MIN_MS(4.5s)，保证 VPS 无人打开监控页也持续落盘
 HISTORY_POLL_SEC = 5
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 7
+CONFIG_REVISION = 8
 
 _log = logging.getLogger("spcx.bark")
 _bark_lock = threading.Lock()
@@ -95,11 +95,12 @@ VENUES: List[Dict[str, Any]] = [
         "exchange": "Gate",
         "token": "SPCX_USDT",
         "type": "现货",
-        "shares": 1_400_000_000_000 / 590,
-        "sharesNote": "隐含市值 $1.4T，认购价 $590",
-        "sharesFormula": "1400000000000/590",
+        # Gate 2026-05-22 完成 1:5 拆股：股本×5、单价÷5，隐含估值不变（公告 51314）
+        "shares": 1_400_000_000_000 / 118,
+        "sharesNote": "1:5 拆股后 · 隐含市值 $1.4T，认购价口径 $118（原 $590÷5）· 2026-05-22 14:00 UTC+8 恢复盘前",
+        "sharesFormula": "1400000000000/118",
         "tradeUrl": "https://www.gate.com/zh/trade/SPCX_USDT",
-        "announceUrl": "https://www.gate.com/zh/announcements/article/50724",
+        "announceUrl": "https://www.gate.com/zh/announcements/article/51314",
     },
     {
         "id": "mexc",
