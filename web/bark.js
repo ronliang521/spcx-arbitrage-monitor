@@ -493,28 +493,9 @@
         ? `超阈值 ${hits.length} 组（${thresholdLabel(config)}）`
         : "未超阈值";
       renderSummary();
-      if (!hits.length) return;
-
-      const toSend = pickHitsForPush(hits, config.cooldownSeconds || 120);
-      if (!toSend.length) {
-        lastStatus = `超阈值 ${hits.length} 组（冷却中）`;
-        renderSummary();
-        return;
-      }
-
-      const title = spreadPushTitle(toSend);
-      const body = spreadPushBody(toSend);
-
-      const pr = await fetch("/api/bark/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body }),
-      });
-      const push = await pr.json();
-      if (push.ok && push.sent > 0) {
-        lastStatus = `已推送 ${push.sent} 个链接 · ${fmtTs(Date.now())}`;
-      } else {
-        lastStatus = push.errors?.[0] || push.error || "推送失败";
+      // 推送仅由服务端后台执行（边沿触发 + 冷却）；前端只展示命中状态，避免多标签页重复推送
+      if (hits.length) {
+        lastStatus = `超阈值 ${hits.length} 组 · 服务端将在「刚突破」时推送`;
       }
       renderSummary();
     } catch (e) {

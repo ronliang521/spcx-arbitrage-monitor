@@ -47,13 +47,14 @@ WEB_DIR = ROOT / "web"
 DATA_DIR = ROOT / "data"
 BARK_CONFIG_PATH = DATA_DIR / "bark_config.json"
 BARK_COOLDOWN_PATH = DATA_DIR / "bark_cooldown.json"
+BARK_LATCH_PATH = DATA_DIR / "bark_latch.json"
 TIMEOUT = 8
 QUOTE_CACHE_TTL_MS = 1200
 BARK_POLL_SEC = 30
 # 略高于 spread_history.HIST_APPEND_MIN_MS(4.5s)，保证 VPS 无人打开监控页也持续落盘
 HISTORY_POLL_SEC = 5
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 8
+CONFIG_REVISION = 9
 
 _log = logging.getLogger("spcx.bark")
 _bark_lock = threading.Lock()
@@ -504,18 +505,22 @@ def _history_tick() -> None:
 
 
 def _bark_tick() -> None:
-    """后台 Bark：不依赖浏览器打开监控页。"""
+    """后台 Bark：拉最新行情，仅突破阈值时推送（边沿触发）。"""
     with _bark_lock:
         try:
             cfg = load_bark_config(BARK_CONFIG_PATH, valid_pair_keys=_matrix_pair_keys())
             if not cfg.enabled:
                 return
-            payload = _snapshot_for_bark()
+            t = _now_ms()
+            payload = build_snapshot()
+            _quote_cache["at_ms"] = t
+            _quote_cache["payload"] = payload
             spread = payload.get("spread") if isinstance(payload.get("spread"), dict) else {}
             result = process_spread_bark_alerts(
                 spread,
                 cfg,
                 cooldown_path=BARK_COOLDOWN_PATH,
+                latch_path=BARK_LATCH_PATH,
                 col_labels=MATRIX_COL_LABELS,
             )
             pushed = int(result.get("pushed") or 0)
@@ -569,13 +574,11 @@ def api_quote() -> JSONResponse:
     t = _now_ms()
     if _quote_cache["payload"] and t - _quote_cache["at_ms"] < QUOTE_CACHE_TTL_MS:
         record_from_snapshot(_quote_cache["payload"], MATRIX_COL_LABELS, data_dir=DATA_DIR)
-        threading.Thread(target=_bark_tick, daemon=True).start()
         return JSONResponse(_quote_cache["payload"])
     payload = build_snapshot()
     record_from_snapshot(payload, MATRIX_COL_LABELS, data_dir=DATA_DIR)
     _quote_cache["at_ms"] = t
     _quote_cache["payload"] = payload
-    threading.Thread(target=_bark_tick, daemon=True).start()
     return JSONResponse(payload)
 
 

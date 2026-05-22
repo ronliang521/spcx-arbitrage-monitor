@@ -359,6 +359,56 @@ def save_bark_cooldown(path: Path, state: Dict[str, int]) -> None:
     tmp.replace(path)
 
 
+def load_bark_latch(path: Path) -> Dict[str, bool]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if not isinstance(raw, dict):
+            return {}
+        return {str(k): bool(v) for k, v in raw.items()}
+    except Exception:
+        return {}
+
+
+def save_bark_latch(path: Path, state: Dict[str, bool]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False)
+        f.write("\n")
+    tmp.replace(path)
+
+
+def filter_hits_edge_trigger(
+    hits: List[Dict[str, Any]],
+    cfg: BarkConfig,
+    *,
+    latch_path: Path,
+) -> List[Dict[str, Any]]:
+    """仅「刚突破阈值」时推送；回落至阈值以下后解除锁存，可再次提醒。"""
+    watch = cfg.watch_pair_set()
+    if not watch:
+        return []
+    above_now = {str(h.get("pairKey") or "") for h in hits if h.get("pairKey")}
+    hit_by_key = {str(h.get("pairKey")): h for h in hits if h.get("pairKey")}
+    latch = load_bark_latch(latch_path)
+    out: List[Dict[str, Any]] = []
+    for pk in watch:
+        is_above = pk in above_now
+        if is_above:
+            if not latch.get(pk):
+                item = hit_by_key.get(pk)
+                if item:
+                    out.append(item)
+                latch[pk] = True
+        else:
+            latch[pk] = False
+    save_bark_latch(latch_path, latch)
+    return out
+
+
 def filter_hits_by_cooldown(
     hits: List[Dict[str, Any]],
     *,
@@ -366,7 +416,7 @@ def filter_hits_by_cooldown(
     cooldown_path: Path,
     now_ms: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
-    """按方向冷却，避免同一 pair 短时间重复推送。"""
+    """按方向冷却，避免同一 pair 短时间反复突破时连推。"""
     if not hits:
         return []
     now = now_ms if now_ms is not None else int(time.time() * 1000)
@@ -391,16 +441,23 @@ def process_spread_bark_alerts(
     cfg: BarkConfig,
     *,
     cooldown_path: Path,
+    latch_path: Path,
     col_labels: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """服务端价差 Bark：评估 → 冷却过滤 → 推送。"""
     if not cfg.enabled:
         return {"ok": True, "skipped": "disabled", "hitCount": 0, "pushed": 0}
     hits = evaluate_spread_hits(spread, cfg, col_labels=col_labels)
-    if not hits:
-        return {"ok": True, "hitCount": 0, "pushed": 0}
+    to_send = filter_hits_edge_trigger(hits, cfg, latch_path=latch_path)
+    if not to_send:
+        return {
+            "ok": True,
+            "hitCount": len(hits),
+            "pushed": 0,
+            "skipped": "latched",
+        }
     to_send = filter_hits_by_cooldown(
-        hits, cooldown_seconds=cfg.cooldown_seconds, cooldown_path=cooldown_path
+        to_send, cooldown_seconds=cfg.cooldown_seconds, cooldown_path=cooldown_path
     )
     if not to_send:
         return {
