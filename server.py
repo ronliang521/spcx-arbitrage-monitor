@@ -54,7 +54,7 @@ BARK_POLL_SEC = 30
 # 略高于 spread_history.HIST_APPEND_MIN_MS(4.5s)，保证 VPS 无人打开监控页也持续落盘
 HISTORY_POLL_SEC = 5
 # 递增后请重启 server.py；/api/quote 会返回此版本号便于确认是否加载新代码
-CONFIG_REVISION = 9
+CONFIG_REVISION = 10
 
 _log = logging.getLogger("spcx.bark")
 _bark_lock = threading.Lock()
@@ -297,11 +297,24 @@ def _fetch_bitget() -> Dict[str, Any]:
 
 
 def _fetch_mexc() -> Dict[str, Any]:
+    symbol = "SPACEX(PRE)USDT"
     r = _session.get(
         "https://api.mexc.com/api/v3/ticker/24hr",
-        params={"symbol": "SPACEX(PRE)USDT"},
+        params={"symbol": symbol},
         timeout=TIMEOUT,
     )
+    if r.status_code == 400:
+        try:
+            body = r.json()
+        except Exception:
+            body = {}
+        if body.get("code") == -1121 or "invalid symbol" in str(body.get("msg", "")).lower():
+            return {
+                "error": (
+                    "MEXC 现货 API 无 SPACEX(PRE)/USDT（invalid symbol）；"
+                    "该盘前凭证可能仅网页端可交易，公开 ticker 未上架"
+                )
+            }
     r.raise_for_status()
     d = r.json()
     return {
